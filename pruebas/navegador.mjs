@@ -36,7 +36,10 @@ export const URL_BASE = process.env.URL_PRUEBAS ?? 'http://localhost:5173/';
 export async function abrirNavegador() {
   const { chromium } = await cargarPlaywright();
   const navegador = await chromium.launch();
-  const contexto = await navegador.newContext({ viewport: { width: 390, height: 844 } });
+  const contexto = await navegador.newContext({
+    viewport: { width: 390, height: 844 },
+    acceptDownloads: true,
+  });
   const pagina = await contexto.newPage();
 
   const errores = [];
@@ -124,6 +127,36 @@ export function leerTabla(pagina, tabla) {
     return new Promise((r) => {
       const q = bd.transaction(nombre).objectStore(nombre).getAll();
       q.onsuccess = () => r(q.result);
+    });
+  }, tabla);
+}
+
+/** Escribe filas sueltas en una tabla de IndexedDB, sin borrar lo que hubiera. */
+export function escribirFilas(pagina, tabla, filas) {
+  return pagina.evaluate(async ({ nombre, datos }) => {
+    const bd = await new Promise((r) => {
+      const q = indexedDB.open('entrenos');
+      q.onsuccess = () => r(q.result);
+    });
+    const tx = bd.transaction(nombre, 'readwrite');
+    for (const fila of datos) tx.objectStore(nombre).put(fila);
+    await new Promise((r) => {
+      tx.oncomplete = r;
+    });
+  }, { nombre: tabla, datos: filas });
+}
+
+/** Vacía una tabla de IndexedDB. */
+export function vaciarTabla(pagina, tabla) {
+  return pagina.evaluate(async (nombre) => {
+    const bd = await new Promise((r) => {
+      const q = indexedDB.open('entrenos');
+      q.onsuccess = () => r(q.result);
+    });
+    const tx = bd.transaction(nombre, 'readwrite');
+    tx.objectStore(nombre).clear();
+    await new Promise((r) => {
+      tx.oncomplete = r;
     });
   }, tabla);
 }

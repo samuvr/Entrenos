@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "pruebas": "node pruebas/semilla.mjs && node pruebas/registro.mjs && node pruebas/rotacion.mjs && node pruebas/descarga.mjs"
+    "pruebas": "node pruebas/semilla.mjs && node pruebas/registro.mjs && node pruebas/rotacion.mjs && node pruebas/descarga.mjs && node pruebas/exportar.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

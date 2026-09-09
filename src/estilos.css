@@ -616,3 +616,39 @@ body {
 .tarjeta.destacada {
   border-color: var(--acento);
 }
+
+/* ---------- Copia de seguridad ---------- */
+
+.banner-ok {
+  background: var(--superficie-alta);
+  border: 1px solid var(--acento);
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.banner-error {
+  background: #3a1416;
+  border: 1px solid #d64550;
+  color: #ffd7da;
+  font-weight: 600;
+}
+
+/* El aviso de copia es un botón: tocarlo lleva directo a guardarla. */
+.banner-copia {
+  display: block;
+  width: 100%;
+  margin: 16px 0 8px;
+  text-align: left;
+  background: var(--superficie-alta);
+  border: 1px solid var(--aviso);
+  color: var(--texto);
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+/* El selector de fichero del sistema es feo y minúsculo: se dispara desde un
+   botón normal, así que la entrada real se esconde. */
+.entrada-fichero {
+  display: none;
+}

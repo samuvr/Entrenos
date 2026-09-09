@@ -7,10 +7,14 @@ import {
   obtenerSesionesRealizadas,
 } from './db/consultas';
 import { inicializarDatos } from './db/inicializar';
+import { leerUltimaCopia } from './db/ajustes';
+import { cerrarBloque, reabrirBloque } from './db/bloques';
 import { descartarSesion, iniciarOReanudarSesion } from './db/registro';
-import type { Bloque, Ejercicio, Sesion, SesionRealizada } from './db/types';
+import type { Bloque, Ejercicio, RegistroCopia, Sesion, SesionRealizada } from './db/types';
+import { calcularEstadoCopia } from './logica/copia';
 import { calcularEstadoBloque, rotacionDeSesion } from './logica/rotacion';
 import { Modal } from './ui/Modal';
+import { PantallaDatos } from './ui/PantallaDatos';
 import { PantallaElegirSesion } from './ui/PantallaElegirSesion';
 import { PantallaInicio } from './ui/PantallaInicio';
 import { PantallaSesion } from './ui/PantallaSesion';
@@ -21,9 +25,10 @@ interface Datos {
   ejerciciosPorSesion: Map<string, Ejercicio[]>;
   realizadas: SesionRealizada[];
   enCurso: SesionRealizada | undefined;
+  ultimaCopia: RegistroCopia | null;
 }
 
-type Vista = 'inicio' | 'elegir' | 'sesion';
+type Vista = 'inicio' | 'elegir' | 'sesion' | 'datos';
 
 export function App() {
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -31,19 +36,21 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   /** Sesión que el usuario quiere empezar tirando otra que está a medias. */
   const [confirmarCambio, setConfirmarCambio] = useState<Sesion | null>(null);
+  const [confirmarCierre, setConfirmarCierre] = useState(false);
   const yaArrancada = useRef(false);
 
   const cargar = useCallback(async () => {
     await inicializarDatos();
     const bloque = await obtenerBloqueActivo();
     if (!bloque) throw new Error('No hay ningún bloque cargado.');
-    const [sesiones, ejerciciosPorSesion, realizadas, enCurso] = await Promise.all([
+    const [sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia] = await Promise.all([
       obtenerSesionesDeBloque(bloque.id),
       obtenerEjerciciosPorSesion(bloque.id),
       obtenerSesionesRealizadas(bloque.id),
       obtenerSesionEnCurso(bloque.id),
+      leerUltimaCopia(),
     ]);
-    setDatos({ bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso });
+    setDatos({ bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia });
 
     // Al abrir la app con una sesión a medias se entra directamente en ella.
     // Solo al arrancar: si luego se sale a Inicio a propósito, no rebota.
@@ -76,8 +83,9 @@ export function App() {
     );
   }
 
-  const { bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso } = datos;
+  const { bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia } = datos;
   const estado = calcularEstadoBloque(bloque, sesiones, realizadas);
+  const estadoCopia = calcularEstadoCopia(estado.completadas, sesiones.length, ultimaCopia);
 
   const empezar = async (sesion: Sesion, descartarLaOtra = false) => {
     const rotacion = rotacionDeSesion(realizadas, sesion.id, bloque.numeroRotaciones);
@@ -112,6 +120,19 @@ export function App() {
     }
   }
 
+  if (vista === 'datos') {
+    return (
+      <PantallaDatos
+        bloque={bloque}
+        completadas={estado.completadas}
+        haySesionEnCurso={enCurso !== undefined}
+        estadoCopia={estadoCopia}
+        onCambio={cargar}
+        onVolver={() => setVista('inicio')}
+      />
+    );
+  }
+
   if (vista === 'elegir') {
     return (
       <>
@@ -142,8 +163,15 @@ export function App() {
         estado={estado}
         sesiones={sesiones}
         pendiente={enCurso}
+        estadoCopia={estadoCopia}
         onEmpezar={() => void empezar(estado.siguiente)}
         onElegirOtra={() => setVista('elegir')}
+        onCopias={() => setVista('datos')}
+        onCerrarBloque={() => setConfirmarCierre(true)}
+        onReabrirBloque={async () => {
+          await reabrirBloque(bloque.id);
+          await cargar();
+        }}
         onContinuarPendiente={() => setVista('sesion')}
         onDescartarPendiente={async () => {
           if (enCurso) await descartarSesion(enCurso.id);
@@ -156,6 +184,37 @@ export function App() {
           onConfirmar={() => void empezar(confirmarCambio, true)}
           onCancelar={() => setConfirmarCambio(null)}
         />
+      )}
+      {confirmarCierre && (
+        <Modal
+          titulo="Cerrar el bloque"
+          aviso="Exporta antes el CSV y guarda la copia: es lo que vas a querer para preparar el bloque 4."
+          onCerrar={() => setConfirmarCierre(false)}
+        >
+          <div className="modal-opciones">
+            <button
+              type="button"
+              className="boton boton-secundario"
+              onClick={() => {
+                setConfirmarCierre(false);
+                setVista('datos');
+              }}
+            >
+              Exportar primero
+            </button>
+            <button
+              type="button"
+              className="boton boton-principal"
+              onClick={async () => {
+                await cerrarBloque(bloque.id);
+                setConfirmarCierre(false);
+                await cargar();
+              }}
+            >
+              Cerrar el bloque
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

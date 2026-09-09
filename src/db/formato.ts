@@ -12,3 +12,11 @@ export function formatearPeso(kg: number): string {
 export function formatearRango(min: number, max: number): string {
   return min === max ? String(min) : `${min}-${max}`;
 }
+
+/**
+ * Número para el CSV: coma decimal y sin separador de miles, que en Excel
+ * español rompería la columna.
+ */
+export function formatearDecimal(n: number): string {
+  return n.toLocaleString('es-ES', { useGrouping: false, maximumFractionDigits: 2 });
+}
