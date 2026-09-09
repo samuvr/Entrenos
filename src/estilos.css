@@ -171,3 +171,380 @@ body {
   border-color: #6b2020;
   background: #24121287;
 }
+
+/* ---------- Barra de sesión ---------- */
+
+.barra {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0 14px;
+}
+
+.barra h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.boton-volver {
+  width: var(--toque);
+  height: var(--toque);
+  flex: 0 0 auto;
+  margin-left: -10px;
+  border: 0;
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--texto);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.banner {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.banner-descarga {
+  background: var(--aviso);
+  color: #2a1a00;
+}
+
+.banner-aviso {
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  font-weight: 600;
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--toque);
+  padding: 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie-alta);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boton-principal {
+  margin-top: 12px;
+  border-color: transparent;
+  background: var(--acento);
+  color: var(--acento-texto);
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+
+.boton-secundario {
+  background: var(--superficie-alta);
+}
+
+.boton-plano {
+  margin-top: 10px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+/* ---------- Tarjeta de ejercicio ---------- */
+
+.ejercicio {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ejercicio.abierto {
+  padding: 14px 16px;
+  border-color: var(--acento);
+}
+
+.ejercicio.hecho .cabecera-ejercicio .nombre {
+  color: var(--texto-suave);
+}
+
+.cabecera-ejercicio {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: var(--toque);
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cabecera-ejercicio.estatica {
+  padding: 0;
+  cursor: default;
+}
+
+.cabecera-ejercicio .nombre {
+  flex: 1;
+  font-weight: 600;
+}
+
+.progreso {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nota-tecnica {
+  padding: 8px 10px;
+  border-left: 3px solid var(--borde);
+  background: #0e131a;
+  border-radius: 0 8px 8px 0;
+}
+
+.ultima-vez {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--superficie-alta);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ultima-vez strong {
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+
+/* ---------- Series ---------- */
+
+.series {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.serie {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 6px 0;
+  border-top: 1px solid var(--borde);
+  font-variant-numeric: tabular-nums;
+}
+
+.serie-num {
+  color: var(--texto-suave);
+  min-width: 1.4em;
+}
+
+.serie-valor {
+  flex: 1;
+}
+
+.serie.registrada .serie-valor {
+  color: var(--acento);
+  font-weight: 700;
+}
+
+.serie.registrada.fallida .serie-valor {
+  color: var(--texto-suave);
+  font-weight: 500;
+  text-decoration: line-through;
+}
+
+.serie.pendiente .serie-valor {
+  color: var(--texto-suave);
+}
+
+.boton-deshacer {
+  width: var(--toque);
+  height: var(--toque);
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.serie.activa {
+  display: block;
+  padding: 10px 0 4px;
+}
+
+.serie-cabecera {
+  margin-bottom: 8px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.controles {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.control {
+  flex: 1;
+  min-width: 0;
+}
+
+.control-etiqueta {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.control-fila {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie-alta);
+  overflow: hidden;
+}
+
+.boton-paso {
+  width: var(--toque);
+  height: var(--toque);
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boton-paso:active {
+  background: var(--borde);
+}
+
+.control-valor {
+  flex: 1;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.control-valor small {
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.boton-confirmar {
+  width: 64px;
+  min-width: 64px;
+  height: var(--toque);
+  min-height: var(--toque);
+  padding: 0;
+  border-color: transparent;
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-size: 1.4rem;
+}
+
+.boton-crono {
+  margin-top: 10px;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 64px;
+}
+
+.boton-crono.en-marcha {
+  border-color: var(--aviso);
+}
+
+.boton-crono.en-marcha.objetivo {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.crono-tiempo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.crono-pie {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.nota-cardio {
+  margin: 16px 0 0;
+}
+
+/* ---------- Modal ---------- */
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: #000000b0;
+  z-index: 10;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  background: var(--superficie);
+}
+
+.modal h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.modal-aviso {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--aviso);
+  color: #2a1a00;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.modal-opciones {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.progreso.parcial {
+  color: var(--aviso);
+  font-weight: 600;
+}
