@@ -76,11 +76,11 @@ comprobar(
   'avisa del día ligero en la sesión D',
 );
 
-// Regla 6: fin de bloque.
+// Regla 6: fin de bloque. Cerrarlo y exportar se prueban en exportar.mjs.
 await sembrarHistorial(pagina, 30);
 await pagina.reload({ waitUntil: 'networkidle' });
 comprobar(
-  (await pagina.locator('.banner-aviso').innerText()).includes('Bloque completo'),
+  (await pagina.locator('.tarjeta.destacada h2').innerText()).includes('Bloque completo'),
   'avisa del fin de bloque a las 30 sesiones',
 );
 comprobar(

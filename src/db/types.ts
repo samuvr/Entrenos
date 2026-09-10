@@ -119,3 +119,14 @@ export interface RangoPesoCorporal {
   min: number;
   max: number;
 }
+
+/**
+ * Rastro de la última copia de seguridad guardada. Solo cuenta el JSON: el CSV
+ * se puede leer pero no restaura nada.
+ */
+export interface RegistroCopia {
+  /** "AAAA-MM-DD". */
+  fecha: string;
+  /** Sesiones terminadas que había en ese momento. */
+  sesionesCompletadas: number;
+}
