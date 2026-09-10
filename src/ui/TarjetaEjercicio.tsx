@@ -119,7 +119,7 @@ export function TarjetaEjercicio({
         {ultimaVez ? (
           <>
             <strong>Última vez ({fechaCorta(ultimaVez.fecha)}):</strong>{' '}
-            {resumirSeries(ejercicio, ultimaVez)}
+            {resumirSeries(ejercicio, ultimaVez.series)}
           </>
         ) : (
           <>Primera vez con este ejercicio.</>

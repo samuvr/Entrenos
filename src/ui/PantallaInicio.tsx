@@ -15,6 +15,8 @@ interface Props {
   onContinuarPendiente: () => void;
   onDescartarPendiente: () => void;
   onCopias: () => void;
+  onHistorial: () => void;
+  onPesoCorporal: () => void;
   onCerrarBloque: () => void;
   onReabrirBloque: () => void;
 }
@@ -57,6 +59,8 @@ export function PantallaInicio({
   onContinuarPendiente,
   onDescartarPendiente,
   onCopias,
+  onHistorial,
+  onPesoCorporal,
   onCerrarBloque,
   onReabrirBloque,
 }: Props) {
@@ -166,9 +170,19 @@ export function PantallaInicio({
         </button>
       )}
 
-      <button type="button" className="boton boton-plano" onClick={onCopias}>
-        Copia de seguridad y exportar
-      </button>
+      {/* Enlaces secundarios (punto 5.1). Van al final y en plano: a las 6:30
+          lo único que importa es el botón de empezar. */}
+      <nav className="secundarios">
+        <button type="button" className="boton boton-plano" onClick={onHistorial}>
+          Historial
+        </button>
+        <button type="button" className="boton boton-plano" onClick={onPesoCorporal}>
+          Peso corporal
+        </button>
+        <button type="button" className="boton boton-plano" onClick={onCopias}>
+          Copia de seguridad y exportar
+        </button>
+      </nav>
     </main>
   );
 }

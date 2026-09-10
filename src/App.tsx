@@ -2,21 +2,33 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   obtenerBloqueActivo,
   obtenerEjerciciosPorSesion,
+  obtenerPesosCorporales,
   obtenerSesionEnCurso,
   obtenerSesionesDeBloque,
   obtenerSesionesRealizadas,
 } from './db/consultas';
 import { inicializarDatos } from './db/inicializar';
-import { leerUltimaCopia } from './db/ajustes';
+import { leerRangoPesoCorporal, leerUltimaCopia } from './db/ajustes';
 import { cerrarBloque, reabrirBloque } from './db/bloques';
 import { descartarSesion, iniciarOReanudarSesion } from './db/registro';
-import type { Bloque, Ejercicio, RegistroCopia, Sesion, SesionRealizada } from './db/types';
+import type {
+  Bloque,
+  Ejercicio,
+  PesoCorporal,
+  RangoPesoCorporal,
+  RegistroCopia,
+  Sesion,
+  SesionRealizada,
+} from './db/types';
 import { calcularEstadoCopia } from './logica/copia';
+import { cargarHistorial, type Historial } from './logica/historial';
 import { calcularEstadoBloque, rotacionDeSesion } from './logica/rotacion';
 import { Modal } from './ui/Modal';
 import { PantallaDatos } from './ui/PantallaDatos';
 import { PantallaElegirSesion } from './ui/PantallaElegirSesion';
+import { PantallaHistorial } from './ui/PantallaHistorial';
 import { PantallaInicio } from './ui/PantallaInicio';
+import { PantallaPesoCorporal } from './ui/PantallaPesoCorporal';
 import { PantallaSesion } from './ui/PantallaSesion';
 
 interface Datos {
@@ -26,9 +38,11 @@ interface Datos {
   realizadas: SesionRealizada[];
   enCurso: SesionRealizada | undefined;
   ultimaCopia: RegistroCopia | null;
+  pesos: PesoCorporal[];
+  rangoPeso: RangoPesoCorporal;
 }
 
-type Vista = 'inicio' | 'elegir' | 'sesion' | 'datos';
+type Vista = 'inicio' | 'elegir' | 'sesion' | 'datos' | 'historial' | 'peso';
 
 export function App() {
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -37,20 +51,33 @@ export function App() {
   /** Sesión que el usuario quiere empezar tirando otra que está a medias. */
   const [confirmarCambio, setConfirmarCambio] = useState<Sesion | null>(null);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
+  const [historial, setHistorial] = useState<Historial | null>(null);
   const yaArrancada = useRef(false);
 
   const cargar = useCallback(async () => {
     await inicializarDatos();
     const bloque = await obtenerBloqueActivo();
     if (!bloque) throw new Error('No hay ningún bloque cargado.');
-    const [sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia] = await Promise.all([
-      obtenerSesionesDeBloque(bloque.id),
-      obtenerEjerciciosPorSesion(bloque.id),
-      obtenerSesionesRealizadas(bloque.id),
-      obtenerSesionEnCurso(bloque.id),
-      leerUltimaCopia(),
-    ]);
-    setDatos({ bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia });
+    const [sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia, pesos, rangoPeso] =
+      await Promise.all([
+        obtenerSesionesDeBloque(bloque.id),
+        obtenerEjerciciosPorSesion(bloque.id),
+        obtenerSesionesRealizadas(bloque.id),
+        obtenerSesionEnCurso(bloque.id),
+        leerUltimaCopia(),
+        obtenerPesosCorporales(),
+        leerRangoPesoCorporal(),
+      ]);
+    setDatos({
+      bloque,
+      sesiones,
+      ejerciciosPorSesion,
+      realizadas,
+      enCurso,
+      ultimaCopia,
+      pesos,
+      rangoPeso,
+    });
 
     // Al abrir la app con una sesión a medias se entra directamente en ella.
     // Solo al arrancar: si luego se sale a Inicio a propósito, no rebota.
@@ -63,6 +90,20 @@ export function App() {
   useEffect(() => {
     cargar().catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [cargar]);
+
+  // El historial recorre todas las series del bloque, así que se calcula solo
+  // cuando se entra a verlo. Al volver a cargar los datos se recalcula, que es
+  // justo lo que hace falta después de terminar una sesión.
+  useEffect(() => {
+    if (vista !== 'historial' || !datos) return;
+    let vigente = true;
+    void cargarHistorial(datos.bloque).then((cargado) => {
+      if (vigente) setHistorial(cargado);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [vista, datos]);
 
   if (error) {
     return (
@@ -84,6 +125,7 @@ export function App() {
   }
 
   const { bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia } = datos;
+  const { pesos, rangoPeso } = datos;
   const estado = calcularEstadoBloque(bloque, sesiones, realizadas);
   const estadoCopia = calcularEstadoCopia(estado.completadas, sesiones.length, ultimaCopia);
 
@@ -133,6 +175,31 @@ export function App() {
     );
   }
 
+  if (vista === 'historial') {
+    return historial ? (
+      <PantallaHistorial
+        bloque={bloque}
+        historial={historial}
+        onVolver={() => setVista('inicio')}
+      />
+    ) : (
+      <main className="app">
+        <p className="estado">Cargando historial…</p>
+      </main>
+    );
+  }
+
+  if (vista === 'peso') {
+    return (
+      <PantallaPesoCorporal
+        pesos={pesos}
+        rango={rangoPeso}
+        onCambio={cargar}
+        onVolver={() => setVista('inicio')}
+      />
+    );
+  }
+
   if (vista === 'elegir') {
     return (
       <>
@@ -167,6 +234,8 @@ export function App() {
         onEmpezar={() => void empezar(estado.siguiente)}
         onElegirOtra={() => setVista('elegir')}
         onCopias={() => setVista('datos')}
+        onHistorial={() => setVista('historial')}
+        onPesoCorporal={() => setVista('peso')}
         onCerrarBloque={() => setConfirmarCierre(true)}
         onReabrirBloque={async () => {
           await reabrirBloque(bloque.id);

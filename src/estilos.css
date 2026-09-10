@@ -125,7 +125,6 @@ body {
   color: var(--texto-suave);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .etiqueta {
@@ -698,4 +697,127 @@ body {
   color: var(--acento);
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+/* ---------- Gráficas ---------- */
+
+.grafica {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 4px 0 8px;
+  overflow: visible;
+}
+
+/* Rejilla y ejes, recesivos: la línea es lo que se mira. */
+.grafica-eje {
+  stroke: var(--borde);
+  stroke-width: 1;
+}
+
+.grafica-banda rect {
+  fill: var(--acento);
+  opacity: 0.1;
+}
+
+.grafica-banda line {
+  stroke: var(--borde);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.grafica-linea {
+  fill: none;
+  stroke: var(--acento);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* El aro del color del fondo separa los puntos cuando se solapan. */
+.grafica-punto {
+  fill: var(--acento);
+  stroke: var(--superficie);
+  stroke-width: 2;
+}
+
+/* Fuera de rango. El color solo refuerza: lo que lo dice de verdad es que el
+   punto cae fuera de la banda, y el texto de la lista de debajo. */
+.grafica-punto.fuera {
+  fill: var(--aviso);
+}
+
+.grafica-escala {
+  fill: var(--texto-suave);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.grafica-valor {
+  fill: var(--texto);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ---------- Historial ---------- */
+
+.pestanas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pestana {
+  flex: 1;
+  min-height: var(--toque);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pestana.activa {
+  border-color: var(--acento);
+  background: var(--superficie-alta);
+  color: var(--texto);
+}
+
+/* Segunda línea dentro del nombre: fecha, rotación, veces hechas. */
+.sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Un día en el tope del rango: es lo que se busca al mirar el historial. */
+.objetivo.al-tope {
+  color: var(--acento);
+  font-weight: 700;
+}
+
+.objetivo.fuera-rango {
+  color: var(--aviso);
+}
+
+.secundarios {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+/* Filas del historial que empiezan por una fecha. La fecha no se parte nunca:
+   sin esto, "24 ago" se quedaba en dos líneas para dejar sitio al valor. */
+.fila-fecha .nombre {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.fila-fecha .objetivo {
+  flex: 1;
+  text-align: right;
 }

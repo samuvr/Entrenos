@@ -29,14 +29,14 @@ npm run pruebas:pwa  Pruebas de la PWA (requieren build + preview arrancado)
 
 ## Estado
 
-Hechos los pasos 1 a 5 y el 7 del plan de trabajo (punto 11 de la spec):
+Hechos los siete pasos del plan de trabajo (punto 11 de la spec):
 
 - [x] 1. Modelo de datos, persistencia en IndexedDB y semilla del bloque 3
 - [x] 2. Pantalla de sesión en curso con registro de series
 - [x] 3. Lógica de rotación y pantalla de inicio
 - [x] 4. Exportación a JSON y CSV
 - [x] 5. Avisos de progresión
-- [ ] 6. Historial y peso corporal
+- [x] 6. Historial y peso corporal
 - [x] 7. PWA, service worker e instalación en el móvil
 
 La app ya se usa de principio a fin de una sesión: al abrirla dice qué toca,
@@ -45,8 +45,9 @@ el ciclo. Los datos ya se pueden sacar del móvil y volver a meter, la doble
 progresión se aplica y se avisa sola, y la app se instala en la pantalla de
 inicio del móvil y arranca en modo avión desde cero.
 
-Queda el paso 6. Los enlaces a Historial y Peso corporal llegan con él; de
-momento no aparecen en Inicio para no dejar botones muertos.
+No hay pantalla de Ajustes: el único ajuste de la spec es el rango de control
+del peso corporal, y está donde se usa, dentro de esa pantalla. Una pantalla
+más con un solo control era un salto de más para nada.
 
 ## Estructura
 
@@ -63,6 +64,7 @@ src/db/fechas.ts       Fechas en formato local
 src/db/formato.ts      Números en formato español
 src/db/exportar.ts     Copia JSON, CSV para Excel y restauración
 src/db/bloques.ts      Cerrar y reabrir el bloque (regla 6)
+src/db/peso.ts         Pesadas y rango de control
 
 src/logica/modeloSesion.ts  Estado de la sesión en curso, reconstruido desde la base
 src/logica/precarga.ts      Valores que salen ya puestos en cada serie
@@ -70,6 +72,8 @@ src/logica/rotacion.ts      Ciclo A→B→C→D→E, rotación, descarga y estad
 src/logica/motivos.ts       Motivos rápidos de omisión
 src/logica/copia.ts         Cuándo recordar la copia de seguridad
 src/logica/progresion.ts    Doble progresión, aviso de subir y estancamiento
+src/logica/historial.ts     Historial por sesión y por ejercicio, y adherencia
+src/logica/pesoCorporal.ts  Semanas de peso y aviso de tres seguidas fuera
 
 src/ui/PantallaInicio.tsx   Qué sesión toca hoy y progreso del bloque
 src/ui/PantallaElegirSesion.tsx  Salto manual a otra sesión
@@ -78,6 +82,9 @@ src/ui/TarjetaEjercicio.tsx Ejercicio expandido o colapsado, con sus series
 src/ui/ControlNumerico.tsx  Peso y reps con -/+, sin teclado
 src/ui/Cronometro.tsx       Cronómetro de las planchas
 src/ui/PantallaDatos.tsx    Copia de seguridad, exportar CSV y restaurar
+src/ui/PantallaHistorial.tsx     Historial por sesión y por ejercicio
+src/ui/PantallaPesoCorporal.tsx  Pesadas semanales y rango de control
+src/ui/Grafica.tsx          Gráfica de línea en SVG, sin librerías
 src/ui/descargar.ts         Descarga de ficheros desde el navegador
 src/pwa.ts                  Registro del service worker
 src/App.tsx                 Navegación entre pantallas
@@ -92,7 +99,7 @@ pruebas/                    Pruebas de navegador (ver pruebas/LEEME.md)
 
 ## Pruebas
 
-130 comprobaciones en Chromium sobre IndexedDB real, incluidos todos los
+152 comprobaciones en Chromium sobre IndexedDB real, incluidos todos los
 criterios de aceptación del punto 10:
 
 - Serie con los valores ya correctos: **1 toque**.
@@ -122,6 +129,30 @@ npm run pruebas:pwa
 
 Necesitan Playwright, que se instala aparte porque la app no lo usa. Los
 detalles están en `pruebas/LEEME.md`.
+
+## Historial y peso corporal
+
+El historial son los mismos datos mirados de dos formas: **por sesión** (qué se
+hizo cada día, con las series y los motivos de lo que se saltó) y **por
+ejercicio** (gráfica del peso a lo largo de las rotaciones y la tabla de cada
+día). Arriba, la adherencia: sesiones hechas de 30 y las veces que se hizo el
+core, contando aparte porque es lo que más se saltaba el bloque pasado. Un
+ejercicio saltado no pinta un punto a cero en la gráfica: eso haría creer que se
+levantaron 0 kg, y se ve en la vista por sesión, que es donde toca.
+
+El peso corporal se apunta una vez por semana. Si hay varias pesadas en la misma
+semana vale la última. Solo se avisa con **tres semanas seguidas fuera del rango
+y hacia el mismo lado**: una pesada alta un martes no significa nada, y avisar
+por ella sería ruido. Seguidas de verdad: si falta la pesada de una semana la
+racha se rompe, porque no se sabe qué pasó esa semana.
+
+Las gráficas son SVG escrito a mano, sin librerías. Una sola serie, así que no
+llevan leyenda ni paleta de colores; y no llevan tooltip a propósito, porque
+esto se usa con el dedo y el hover no existe: el detalle está en la tabla de
+debajo, que además es lo que sirve para leerlo sin ver la gráfica. En la del
+peso corporal, lo que dice que una pesada está fuera de rango es que **cae fuera
+de la banda sombreada** y que la lista lo pone con texto; el color solo lo
+refuerza, porque el verde y el ámbar no se distinguen bien con daltonismo protán.
 
 ## Instalar en el móvil
 
