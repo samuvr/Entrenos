@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Entrenos</title>
+  <rect width="512" height="512" fill="#35c46b"/>
+  <!-- La barra cabe entera dentro del círculo de radio 205 centrado en la
+       imagen, que es el recorte que Android aplica a los iconos "maskable". -->
+  <g fill="#06210f">
+    <rect x="160" y="228" width="192" height="56" rx="28"/>
+    <rect x="129" y="171" width="52" height="170" rx="20"/>
+    <rect x="331" y="171" width="52" height="170" rx="20"/>
+    <rect x="81" y="201" width="36" height="110" rx="14"/>
+    <rect x="395" y="201" width="36" height="110" rx="14"/>
+  </g>
+</svg>

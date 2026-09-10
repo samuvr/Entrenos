@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { registrarServiceWorker } from './pwa';
 import './estilos.css';
 
 const raiz = document.getElementById('root');
@@ -11,3 +12,5 @@ createRoot(raiz).render(
     <App />
   </StrictMode>,
 );
+
+registrarServiceWorker();
