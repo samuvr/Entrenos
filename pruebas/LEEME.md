@@ -34,6 +34,7 @@ en CMD antes de lanzarlas.
 | `rotacion.mjs` | Ciclo A→B→C→D→E, progreso del bloque, avisos, salto manual de sesión |
 | `descarga.mjs` | Rotación 6 y funcionamiento sin conexión |
 | `exportar.mjs` | Copia JSON, CSV para Excel, restaurar, aviso de copia y cierre de bloque |
+| `progresion.mjs` | Doble progresión, SUBE HOY, objetivo cumplido y estancamiento |
 
 Cada suite deja el estado de la anterior por medio, así que se lanzan en su
 propio navegador y siembran lo que necesitan.

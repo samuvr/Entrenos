@@ -1,7 +1,8 @@
 import { obtenerEjerciciosDeSesion, obtenerSeriesDeSesionRealizada } from '../db/consultas';
-import { obtenerUltimaVezPorEjercicio, type UltimaVez } from '../db/registro';
+import { obtenerHistorialPorEjercicio, type VezAnterior } from '../db/registro';
 import type { Bloque, Ejercicio, SerieRealizada, Sesion, SesionRealizada } from '../db/types';
 import { valoresPrecargados, type Valores } from './precarga';
+import { estaEstancado, progresionDeHoy, progresionDesde, type Progresion } from './progresion';
 import { esDescarga, seriesObjetivo } from './rotacion';
 
 export interface SerieEnCurso {
@@ -14,11 +15,17 @@ export interface EjercicioEnCurso {
   ejercicio: Ejercicio;
   /** Series a hacer hoy; en descarga son 2. */
   total: number;
-  ultimaVez: UltimaVez | undefined;
+  ultimaVez: VezAnterior | undefined;
   series: SerieEnCurso[];
   completadas: number;
   terminado: boolean;
   saltado: boolean;
+  /** Subida que toca hoy; se apaga en cuanto se registra la primera serie. */
+  subeHoy: Progresion | null;
+  /** Objetivo cumplido con lo de hoy: la próxima vez toca subir. */
+  logrado: Progresion | null;
+  /** Tres sesiones con el mismo peso sin llegar al tope. */
+  estancado: boolean;
 }
 
 export interface ModeloSesion {
@@ -41,14 +48,20 @@ export async function cargarModeloSesion(
 ): Promise<ModeloSesion> {
   const ejercicios = await obtenerEjerciciosDeSesion(sesion.id);
   const registradas = await obtenerSeriesDeSesionRealizada(sesionRealizada.id);
-  const ultimaVezPorEjercicio = await obtenerUltimaVezPorEjercicio(
+  const historialPorEjercicio = await obtenerHistorialPorEjercicio(
     ejercicios.map((e) => e.id),
     sesionRealizada.id,
   );
 
   const descarga = esDescarga(sesionRealizada.rotacion, bloque.numeroRotaciones);
   const enCurso = ejercicios.map((ejercicio) =>
-    construirEjercicio(ejercicio, descarga, registradas, ultimaVezPorEjercicio.get(ejercicio.id)),
+    construirEjercicio(
+      ejercicio,
+      descarga,
+      bloque.numeroRotaciones,
+      registradas,
+      historialPorEjercicio.get(ejercicio.id) ?? [],
+    ),
   );
 
   return {
@@ -66,10 +79,14 @@ export async function cargarModeloSesion(
 function construirEjercicio(
   ejercicio: Ejercicio,
   descarga: boolean,
+  numeroRotaciones: number,
   registradas: SerieRealizada[],
-  ultimaVez: UltimaVez | undefined,
+  historial: VezAnterior[],
 ): EjercicioEnCurso {
   const suyas = registradas.filter((s) => s.ejercicioId === ejercicio.id);
+  const ultimaVez = historial[0];
+  const progresion = progresionDeHoy(ejercicio, ultimaVez, numeroRotaciones, descarga);
+
   // Si se registraron más series de las previstas (p. ej. venía de descarga),
   // se muestran todas para no esconder nada de lo ya hecho.
   const total = Math.max(seriesObjetivo(ejercicio, descarga), ...suyas.map((s) => s.numeroSerie), 0);
@@ -79,7 +96,7 @@ function construirEjercicio(
     series.push({
       numeroSerie: n,
       registrada: suyas.find((s) => s.numeroSerie === n) ?? null,
-      precarga: valoresPrecargados(ejercicio, ultimaVez, n),
+      precarga: valoresPrecargados(ejercicio, ultimaVez, n, progresion),
     });
   }
 
@@ -94,5 +111,12 @@ function construirEjercicio(
     terminado,
     // Saltado: todas anotadas sin completar y sin ningún valor registrado.
     saltado: terminado && completadas === 0 && suyas.every((s) => s.reps === 0),
+    // El aviso de subir es para antes de empezar: en cuanto hay una serie
+    // registrada, la decisión ya está tomada y el aviso estorba.
+    subeHoy: suyas.length === 0 ? progresion : null,
+    // Lo de hoy solo se juzga cuando el ejercicio está cerrado; a mitad de
+    // ejercicio todavía no se sabe si se cumple el objetivo.
+    logrado: terminado && !descarga ? progresionDesde(ejercicio, suyas) : null,
+    estancado: estaEstancado(ejercicio, historial, numeroRotaciones),
   };
 }

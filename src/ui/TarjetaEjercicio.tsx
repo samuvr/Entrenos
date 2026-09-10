@@ -1,8 +1,9 @@
 import { fechaCorta } from '../db/fechas';
-import { formatearNumero, formatearRango } from '../db/formato';
+import { formatearNumero, formatearPeso, formatearRango } from '../db/formato';
 import type { EjercicioEnCurso } from '../logica/modeloSesion';
 import { ETIQUETA_MOTIVO } from '../logica/motivos';
 import { resumirSeries, type Valores } from '../logica/precarga';
+import { progresaEnPeso, type Progresion } from '../logica/progresion';
 import { ControlNumerico } from './ControlNumerico';
 import { Cronometro } from './Cronometro';
 
@@ -18,6 +19,12 @@ interface Props {
   onDeshacer: (numeroSerie: number) => void;
   onSaltar: () => void;
   onReanudar: () => void;
+}
+
+/** "37,5 kg", "50 s" o "12 reps", según en qué progrese el ejercicio. */
+function valorProgresion(progresion: Progresion, enSegundos: boolean): string {
+  if (progresion.campo === 'peso') return formatearPeso(progresion.nuevo);
+  return enSegundos ? `${progresion.nuevo} s` : `${progresion.nuevo} reps`;
 }
 
 export function TarjetaEjercicio({
@@ -50,12 +57,21 @@ export function TarjetaEjercicio({
           <span className="nombre">
             {ejercicio.nombre}
             {ejercicio.esCore && <span className="etiqueta etiqueta-core">core</span>}
+            {estado.subeHoy && <span className="etiqueta etiqueta-sube">sube</span>}
           </span>
           <span className={`progreso${estado.terminado && !completo ? ' parcial' : ''}`}>
             {estado.saltado ? 'saltado' : `${estado.completadas}/${total}`}
             {completo ? ' ✓' : ''}
           </span>
         </button>
+        {/* Al acabar un ejercicio la tarjeta se colapsa sola para avanzar al
+            siguiente. El aviso de que la próxima vez toca subir se queda a la
+            vista aquí, que si no se lo lleva por delante justo al ganárselo. */}
+        {estado.logrado && (
+          <p className="logro-compacto">
+            Objetivo cumplido. La próxima vez: {valorProgresion(estado.logrado, enSegundos)}
+          </p>
+        )}
       </section>
     );
   }
@@ -68,12 +84,36 @@ export function TarjetaEjercicio({
           {ejercicio.nombre}
           {ejercicio.esCore && <span className="etiqueta etiqueta-core">core</span>}
           {ejercicio.esNuevo && <span className="etiqueta etiqueta-nuevo">nuevo</span>}
+          {estado.estancado && !estado.subeHoy && (
+            <span className="etiqueta etiqueta-estancado">estancado</span>
+          )}
         </span>
         <span className="progreso">{objetivo}</span>
       </div>
 
       {ejercicio.notaReps && <p className="nota">{ejercicio.notaReps}</p>}
       {ejercicio.notaTecnica && <p className="nota nota-tecnica">{ejercicio.notaTecnica}</p>}
+
+      {estado.subeHoy && (
+        <p className="banner banner-sube">
+          SUBE HOY: {valorProgresion(estado.subeHoy, enSegundos)}
+          <small>
+            La última vez completaste las {estado.subeHoy.seriesEnTope} series a{' '}
+            {ejercicio.repsMax}
+            {enSegundos ? ' s' : ' reps'}. Si hoy no puedes, bájalo y ya está.
+          </small>
+        </p>
+      )}
+      {estado.logrado && (
+        <p className="banner banner-logro">
+          Objetivo cumplido. La próxima vez: {valorProgresion(estado.logrado, enSegundos)}
+        </p>
+      )}
+      {estado.estancado && !estado.subeHoy && (
+        <p className="nota">
+          Llevas 3 sesiones con el mismo peso sin llegar al tope del rango.
+        </p>
+      )}
 
       <p className="ultima-vez">
         {ultimaVez ? (
@@ -135,7 +175,7 @@ export function TarjetaEjercicio({
                 <span className="serie-num">Serie {serie.numeroSerie}</span>
               </div>
               <div className="controles">
-                {!enSegundos && ejercicio.tipoCarga !== 'corporal' && (
+                {progresaEnPeso(ejercicio) && (
                   <ControlNumerico
                     etiqueta="Peso"
                     valor={valores.peso}
@@ -153,15 +193,18 @@ export function TarjetaEjercicio({
                   sufijo={enSegundos ? ' s' : ''}
                   onCambio={(reps) => onCambiarBorrador({ ...valores, reps })}
                 />
-                <button
-                  type="button"
-                  className="boton boton-confirmar"
-                  onClick={() => onConfirmar(serie.numeroSerie, valores)}
-                  aria-label={`Confirmar serie ${serie.numeroSerie}`}
-                >
-                  ✓
-                </button>
               </div>
+              {/* El confirmar va en su propia línea: con dos controles al lado
+                  no cabe un peso de cuatro cifras (37,5) sin comerse el «+», y
+                  a pantalla completa es además el botón más fácil de acertar. */}
+              <button
+                type="button"
+                className="boton boton-confirmar"
+                onClick={() => onConfirmar(serie.numeroSerie, valores)}
+                aria-label={`Confirmar serie ${serie.numeroSerie}`}
+              >
+                ✓
+              </button>
 
               {enSegundos && (
                 <Cronometro

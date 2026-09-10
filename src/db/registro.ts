@@ -169,41 +169,62 @@ export async function descartarSesion(sesionRealizadaId: string): Promise<void> 
   });
 }
 
-export interface UltimaVez {
+export interface VezAnterior {
+  sesionRealizadaId: string;
   fecha: string;
+  /** Rotación de aquella sesión: la 6 es descarga y no cuenta para progresar. */
+  rotacion: number;
+  /** Series de ese día, ordenadas. */
   series: SerieRealizada[];
 }
 
 /**
- * Lo que se hizo la última vez de cada ejercicio, para precargar los valores y
- * mostrarlo en pantalla. Ignora la sesión en curso.
+ * Las últimas veces que se hizo cada ejercicio, de la más reciente a la más
+ * antigua. Con una basta para precargar valores; hacen falta tres para detectar
+ * un ejercicio estancado. Ignora la sesión en curso y las que no se cerraron.
  */
-export async function obtenerUltimaVezPorEjercicio(
+export async function obtenerHistorialPorEjercicio(
   ejercicioIds: string[],
   excluirSesionRealizadaId: string,
-): Promise<Map<string, UltimaVez>> {
+  cuantas = 3,
+): Promise<Map<string, VezAnterior[]>> {
   const [series, sesiones] = await Promise.all([
     db.seriesRealizadas.where('ejercicioId').anyOf(ejercicioIds).toArray(),
     db.sesionesRealizadas.toArray(),
   ]);
-  const fechaDeSesion = new Map(sesiones.map((s) => [s.id, s.fecha]));
+  const porId = new Map(sesiones.filter((s) => s.finalizada).map((s) => [s.id, s]));
 
-  const resultado = new Map<string, UltimaVez>();
+  const resultado = new Map<string, VezAnterior[]>();
   for (const ejercicioId of ejercicioIds) {
     const suyas = series.filter(
       (s) => s.ejercicioId === ejercicioId && s.sesionRealizadaId !== excluirSesionRealizadaId,
     );
-    if (suyas.length === 0) continue;
 
-    const ultima = suyas.reduce((a, b) => (a.registradaEn >= b.registradaEn ? a : b));
-    const deEsaSesion = suyas
-      .filter((s) => s.sesionRealizadaId === ultima.sesionRealizadaId)
-      .sort((a, b) => a.numeroSerie - b.numeroSerie);
+    const porSesion = new Map<string, SerieRealizada[]>();
+    for (const serie of suyas) {
+      if (!porId.has(serie.sesionRealizadaId)) continue;
+      const lista = porSesion.get(serie.sesionRealizadaId);
+      if (lista) lista.push(serie);
+      else porSesion.set(serie.sesionRealizadaId, [serie]);
+    }
+    if (porSesion.size === 0) continue;
 
-    resultado.set(ejercicioId, {
-      fecha: fechaDeSesion.get(ultima.sesionRealizadaId) ?? '',
-      series: deEsaSesion,
+    const veces: VezAnterior[] = [];
+    for (const [sesionRealizadaId, propias] of porSesion) {
+      const sesion = porId.get(sesionRealizadaId)!;
+      veces.push({
+        sesionRealizadaId,
+        fecha: sesion.fecha,
+        rotacion: sesion.rotacion,
+        series: propias.sort((a, b) => a.numeroSerie - b.numeroSerie),
+      });
+    }
+    veces.sort((a, b) => {
+      const sa = porId.get(a.sesionRealizadaId)!.iniciadaEn;
+      const sb = porId.get(b.sesionRealizadaId)!.iniciadaEn;
+      return sb.localeCompare(sa);
     });
+    resultado.set(ejercicioId, veces.slice(0, cuantas));
   }
   return resultado;
 }

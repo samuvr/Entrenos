@@ -27,21 +27,22 @@ npm run pruebas   Pruebas de navegador (requieren el dev server arrancado)
 
 ## Estado
 
-Hechos los pasos 1 a 4 del plan de trabajo (punto 11 de la spec):
+Hechos los pasos 1 a 5 del plan de trabajo (punto 11 de la spec):
 
 - [x] 1. Modelo de datos, persistencia en IndexedDB y semilla del bloque 3
 - [x] 2. Pantalla de sesión en curso con registro de series
 - [x] 3. Lógica de rotación y pantalla de inicio
 - [x] 4. Exportación a JSON y CSV
-- [ ] 5. Avisos de progresión
+- [x] 5. Avisos de progresión
 - [ ] 6. Historial y peso corporal
 - [ ] 7. PWA, service worker e instalación en el móvil
 
 La app ya se usa de principio a fin de una sesión: al abrirla dice qué toca,
 se arranca de un toque, se registra serie a serie y al terminar avanza sola en
-el ciclo. Los datos ya se pueden sacar del móvil y volver a meter. Los enlaces
-a Historial y Peso corporal llegan con el paso 6; de momento no aparecen en
-Inicio para no dejar botones muertos.
+el ciclo. Los datos ya se pueden sacar del móvil y volver a meter, y la doble
+progresión se aplica y se avisa sola. Los enlaces a Historial y Peso corporal
+llegan con el paso 6; de momento no aparecen en Inicio para no dejar botones
+muertos.
 
 Sin conexión la app funciona una vez cargada, pero abrirla en modo avión desde
 cero necesita el service worker del paso 7.
@@ -67,6 +68,7 @@ src/logica/precarga.ts      Valores que salen ya puestos en cada serie
 src/logica/rotacion.ts      Ciclo A→B→C→D→E, rotación, descarga y estado del bloque
 src/logica/motivos.ts       Motivos rápidos de omisión
 src/logica/copia.ts         Cuándo recordar la copia de seguridad
+src/logica/progresion.ts    Doble progresión, aviso de subir y estancamiento
 
 src/ui/PantallaInicio.tsx   Qué sesión toca hoy y progreso del bloque
 src/ui/PantallaElegirSesion.tsx  Salto manual a otra sesión
@@ -83,7 +85,7 @@ pruebas/                    Pruebas de navegador (ver pruebas/LEEME.md)
 
 ## Pruebas
 
-97 comprobaciones en Chromium sobre IndexedDB real, incluidos los criterios de
+112 comprobaciones en Chromium sobre IndexedDB real, incluidos los criterios de
 aceptación del punto 10:
 
 - Serie con los valores ya correctos: **1 toque**.
@@ -93,6 +95,8 @@ aceptación del punto 10:
 - La sesión entera funciona con la red cortada.
 - El CSV sale con BOM, punto y coma y coma decimal, que es lo que Excel en
   español necesita para abrirlo bien.
+- Tras completar un ejercicio en el tope del rango, la vez siguiente sale el
+  peso ya subido y la etiqueta de aviso.
 
 Con el servidor arrancado en otra ventana:
 
@@ -102,6 +106,27 @@ npm run pruebas
 
 Necesitan Playwright, que se instala aparte porque la app no lo usa. Los
 detalles están en `pruebas/LEEME.md`.
+
+## Progresión
+
+La regla que más se incumple es la doble progresión: completar todas las series
+en el tope del rango y luego repetir el mismo peso. La app la cierra sola.
+
+- Al terminar un ejercicio con **todas** las series completadas en el tope del
+  rango y al mismo peso: **"Objetivo cumplido. La próxima vez: 37,5 kg"**.
+- La vez siguiente el peso ya sale subido, con la etiqueta **SUBE HOY**, que se
+  apaga en cuanto se registra la primera serie. Con el peso nuevo las reps salen
+  por abajo del rango, que es donde se cae de verdad al subir.
+- Si esa vez no se sube, el aviso vuelve a salir la siguiente.
+- En los ejercicios corporales no hay peso que subir: ahí se progresa alargando
+  el tiempo (+5 s), que es lo que dice la tabla de incrementos.
+- **En la rotación de descarga no se sube**, ni se progresa desde ella: repite
+  el peso de la rotación 5 con menos series, así que llegar al tope ahí no
+  cuenta como haberlo ganado.
+- Tres sesiones seguidas al mismo peso sin llegar al tope marcan el ejercicio
+  como **estancado**. Las descargas no cuentan para eso, que darían un
+  estancamiento falso. La vista de historial llega con el paso 6; de momento el
+  aviso sale en la propia tarjeta del ejercicio.
 
 ## Cómo se cambia de bloque
 

@@ -1,5 +1,6 @@
-import type { UltimaVez } from '../db/registro';
+import type { VezAnterior } from '../db/registro';
 import type { Ejercicio } from '../db/types';
+import type { Progresion } from './progresion';
 
 export interface Valores {
   peso: number;
@@ -10,12 +11,29 @@ export interface Valores {
  * Valores que salen ya puestos en una serie: los de esa misma serie la última
  * vez. Si el usuario repite lo mismo, confirmar es el único toque que necesita.
  *
+ * Si toca subir (doble progresión), sale ya el peso nuevo. Y con el peso nuevo
+ * salen las reps por abajo del rango, que es donde se cae de verdad al subir:
+ * proponer el tope obligaría a bajarlas a mano cada vez.
+ *
  * Sin historial se propone el peso inicial y el tope del rango, que es el
  * objetivo al que apunta la doble progresión.
  */
 export function valoresPrecargados(
   ejercicio: Ejercicio,
-  ultimaVez: UltimaVez | undefined,
+  ultimaVez: VezAnterior | undefined,
+  numeroSerie: number,
+  progresion: Progresion | null = null,
+): Valores {
+  const base = valoresBase(ejercicio, ultimaVez, numeroSerie);
+  if (!progresion) return base;
+  return progresion.campo === 'peso'
+    ? { peso: progresion.nuevo, reps: ejercicio.repsMin }
+    : { peso: base.peso, reps: progresion.nuevo };
+}
+
+function valoresBase(
+  ejercicio: Ejercicio,
+  ultimaVez: VezAnterior | undefined,
   numeroSerie: number,
 ): Valores {
   const utiles = ultimaVez?.series.filter((s) => s.completada) ?? [];
@@ -30,7 +48,7 @@ export function valoresPrecargados(
 }
 
 /** "35x10, 35x10, 35x9" o "45 s, 40 s" para el resumen de la última vez. */
-export function resumirSeries(ejercicio: Ejercicio, ultimaVez: UltimaVez): string {
+export function resumirSeries(ejercicio: Ejercicio, ultimaVez: VezAnterior): string {
   return ultimaVez.series
     .map((s) => {
       if (!s.completada) return '—';
