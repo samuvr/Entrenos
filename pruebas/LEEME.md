@@ -35,6 +35,25 @@ en CMD antes de lanzarlas.
 | `descarga.mjs` | Rotación 6 y funcionamiento sin conexión |
 | `exportar.mjs` | Copia JSON, CSV para Excel, restaurar, aviso de copia y cierre de bloque |
 | `progresion.mjs` | Doble progresión, SUBE HOY, objetivo cumplido y estancamiento |
+| `pwa.mjs` | Manifest, iconos, service worker y arranque en modo avión |
 
 Cada suite deja el estado de la anterior por medio, así que se lanzan en su
 propio navegador y siembran lo que necesitan.
+
+## La suite de la PWA va aparte
+
+`pwa.mjs` no entra en `npm run pruebas`: necesita el build, no el servidor de
+desarrollo, porque el service worker solo se registra en producción.
+
+```
+npm run build
+npm run preview
+npm run pruebas:pwa
+```
+
+Si el preview escucha en otro sitio: `set URL_PRUEBAS_PROD=http://localhost:5000/`.
+
+Lo que no cubre y se comprobó a mano: que tras desplegar una versión nueva la
+app coja el bundle nuevo al recargar con red, y que a partir de ahí arranque en
+modo avión ya con esa versión. Automatizarlo pediría reconstruir a mitad de la
+prueba, que es más lío del que ahorra.

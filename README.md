@@ -11,23 +11,25 @@ La especificación completa está en `docs/ESPECIFICACION.md`.
 - React 18 + Vite + TypeScript
 - Dexie (IndexedDB) para la persistencia local
 - CSS plano, sin librerías de componentes
+- PWA instalable, con service worker propio (sin plugin)
 
 ## Comandos
 
 Funcionan igual en Windows (CMD) y en Linux.
 
 ```
-npm install       Instala las dependencias
-npm run dev       Arranca el servidor de desarrollo
-npm run build     Comprueba tipos y genera dist/
-npm run preview   Sirve el dist/ ya generado
-npm run typecheck Solo comprobación de tipos
-npm run pruebas   Pruebas de navegador (requieren el dev server arrancado)
+npm install          Instala las dependencias
+npm run dev          Arranca el servidor de desarrollo
+npm run build        Comprueba tipos y genera dist/
+npm run preview      Sirve el dist/ ya generado
+npm run typecheck    Solo comprobación de tipos
+npm run pruebas      Pruebas de navegador (requieren el dev server arrancado)
+npm run pruebas:pwa  Pruebas de la PWA (requieren build + preview arrancado)
 ```
 
 ## Estado
 
-Hechos los pasos 1 a 5 del plan de trabajo (punto 11 de la spec):
+Hechos los pasos 1 a 5 y el 7 del plan de trabajo (punto 11 de la spec):
 
 - [x] 1. Modelo de datos, persistencia en IndexedDB y semilla del bloque 3
 - [x] 2. Pantalla de sesión en curso con registro de series
@@ -35,17 +37,16 @@ Hechos los pasos 1 a 5 del plan de trabajo (punto 11 de la spec):
 - [x] 4. Exportación a JSON y CSV
 - [x] 5. Avisos de progresión
 - [ ] 6. Historial y peso corporal
-- [ ] 7. PWA, service worker e instalación en el móvil
+- [x] 7. PWA, service worker e instalación en el móvil
 
 La app ya se usa de principio a fin de una sesión: al abrirla dice qué toca,
 se arranca de un toque, se registra serie a serie y al terminar avanza sola en
-el ciclo. Los datos ya se pueden sacar del móvil y volver a meter, y la doble
-progresión se aplica y se avisa sola. Los enlaces a Historial y Peso corporal
-llegan con el paso 6; de momento no aparecen en Inicio para no dejar botones
-muertos.
+el ciclo. Los datos ya se pueden sacar del móvil y volver a meter, la doble
+progresión se aplica y se avisa sola, y la app se instala en la pantalla de
+inicio del móvil y arranca en modo avión desde cero.
 
-Sin conexión la app funciona una vez cargada, pero abrirla en modo avión desde
-cero necesita el service worker del paso 7.
+Queda el paso 6. Los enlaces a Historial y Peso corporal llegan con él; de
+momento no aparecen en Inicio para no dejar botones muertos.
 
 ## Estructura
 
@@ -78,15 +79,21 @@ src/ui/ControlNumerico.tsx  Peso y reps con -/+, sin teclado
 src/ui/Cronometro.tsx       Cronómetro de las planchas
 src/ui/PantallaDatos.tsx    Copia de seguridad, exportar CSV y restaurar
 src/ui/descargar.ts         Descarga de ficheros desde el navegador
+src/pwa.ts                  Registro del service worker
 src/App.tsx                 Navegación entre pantallas
+
+public/manifest.webmanifest Manifest de la PWA
+public/sw.js                Service worker: arranque sin conexión
+public/icono.svg            Icono, del que salen los PNG
+herramientas/               Utilidades sueltas (generar los PNG del icono)
 
 pruebas/                    Pruebas de navegador (ver pruebas/LEEME.md)
 ```
 
 ## Pruebas
 
-112 comprobaciones en Chromium sobre IndexedDB real, incluidos los criterios de
-aceptación del punto 10:
+130 comprobaciones en Chromium sobre IndexedDB real, incluidos todos los
+criterios de aceptación del punto 10:
 
 - Serie con los valores ya correctos: **1 toque**.
 - Serie cambiando el peso: **2 toques**.
@@ -97,6 +104,7 @@ aceptación del punto 10:
   español necesita para abrirlo bien.
 - Tras completar un ejercicio en el tope del rango, la vez siguiente sale el
   peso ya subido y la etiqueta de aviso.
+- Con la red cortada y sin nada abierto, la app arranca igual y deja entrenar.
 
 Con el servidor arrancado en otra ventana:
 
@@ -104,8 +112,47 @@ Con el servidor arrancado en otra ventana:
 npm run pruebas
 ```
 
+Las de la PWA van aparte porque el service worker solo se registra en el build:
+
+```
+npm run build
+npm run preview
+npm run pruebas:pwa
+```
+
 Necesitan Playwright, que se instala aparte porque la app no lo usa. Los
 detalles están en `pruebas/LEEME.md`.
+
+## Instalar en el móvil
+
+La app es una PWA: se abre en el navegador del móvil y se añade a la pantalla
+de inicio (en iPhone, Compartir → Añadir a pantalla de inicio; en Android, el
+menú del navegador → Instalar). Desde ahí arranca a pantalla completa, sin
+barra del navegador, y con su icono.
+
+Una vez abierta con cobertura al menos una vez, arranca sin conexión: el
+service worker guarda el HTML, el JS y el CSS, y los entrenos ya vivían en
+IndexedDB. En el gimnasio no hace falta señal para nada.
+
+Sobre el service worker (`public/sw.js`), que es lo único con algo de truco:
+
+- Las navegaciones van a la red primero, así que al desplegar una versión nueva
+  se coge sola; si no hay red, tira de la copia guardada.
+- El resto de ficheros, copia guardada primero. Vite pone un hash en cada
+  nombre, así que un fichero guardado nunca es la versión equivocada.
+- Solo se registra en producción. En desarrollo se desregistra al arrancar, que
+  si no sirve ficheros viejos y parece que los cambios no se aplican.
+- Para tirar todo lo guardado y empezar de cero, subir `CACHE` de versión. Es lo
+  único que hay que tocar ahí.
+
+## Despliegue
+
+`npm run build` deja en `dist/` ficheros estáticos, sin backend. Vale cualquier
+alojamiento estático (GitHub Pages, Netlify, Vercel). Las rutas son relativas
+(`base: './'`), así que también funciona servido desde una subcarpeta.
+
+Tiene que servirse por **HTTPS** (o localhost): sin eso el navegador no
+registra el service worker ni ofrece instalar la app.
 
 ## Progresión
 
