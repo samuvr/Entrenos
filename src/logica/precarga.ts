@@ -1,5 +1,5 @@
 import type { VezAnterior } from '../db/registro';
-import type { Ejercicio } from '../db/types';
+import type { Ejercicio, SerieRealizada } from '../db/types';
 import type { Progresion } from './progresion';
 
 export interface Valores {
@@ -47,9 +47,9 @@ function valoresBase(
   return { peso: ejercicio.pesoInicial, reps: ejercicio.repsMax };
 }
 
-/** "35x10, 35x10, 35x9" o "45 s, 40 s" para el resumen de la última vez. */
-export function resumirSeries(ejercicio: Ejercicio, ultimaVez: VezAnterior): string {
-  return ultimaVez.series
+/** "35x10, 35x10, 35x9" o "45 s, 40 s" para resumir un día de un ejercicio. */
+export function resumirSeries(ejercicio: Ejercicio, series: SerieRealizada[]): string {
+  return series
     .map((s) => {
       if (!s.completada) return '—';
       if (ejercicio.unidad === 'segundos') return `${s.reps} s`;

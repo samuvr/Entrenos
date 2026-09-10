@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "pruebas:pwa": "node pruebas/pwa.mjs",
-    "pruebas": "node pruebas/semilla.mjs && node pruebas/registro.mjs && node pruebas/rotacion.mjs && node pruebas/descarga.mjs && node pruebas/exportar.mjs && node pruebas/progresion.mjs"
+    "pruebas": "node pruebas/semilla.mjs && node pruebas/registro.mjs && node pruebas/rotacion.mjs && node pruebas/descarga.mjs && node pruebas/exportar.mjs && node pruebas/progresion.mjs && node pruebas/historial.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",
