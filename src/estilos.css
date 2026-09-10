@@ -402,8 +402,10 @@ body {
   align-items: flex-end;
 }
 
+/* La base es el contenido, no un reparto a partes iguales: el peso necesita
+   sitio para "37,5 kg" y las reps se apañan con dos cifras. */
 .control {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -457,10 +459,10 @@ body {
 }
 
 .boton-confirmar {
-  width: 64px;
-  min-width: 64px;
+  width: 100%;
   height: var(--toque);
   min-height: var(--toque);
+  margin-top: 8px;
   padding: 0;
   border-color: transparent;
   background: var(--acento);
@@ -651,4 +653,49 @@ body {
    botón normal, así que la entrada real se esconde. */
 .entrada-fichero {
   display: none;
+}
+
+/* ---------- Avisos de progresión ---------- */
+
+/* El aviso de subir es lo primero que hay que ver al abrir el ejercicio. */
+.banner-sube {
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.banner-sube small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.75;
+  letter-spacing: 0;
+}
+
+.banner-logro {
+  background: var(--superficie-alta);
+  border: 1px solid var(--acento);
+  color: var(--acento);
+}
+
+.etiqueta-sube {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.etiqueta-estancado {
+  background: var(--superficie-alta);
+  border: 1px solid var(--aviso);
+  color: var(--aviso);
+}
+
+/* Versión de una línea del aviso, para la tarjeta ya colapsada. */
+.logro-compacto {
+  margin: 0;
+  padding: 8px 14px 12px;
+  color: var(--acento);
+  font-size: 0.85rem;
+  font-weight: 700;
 }
