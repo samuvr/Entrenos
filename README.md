@@ -178,12 +178,28 @@ Sobre el service worker (`public/sw.js`), que es lo único con algo de truco:
 
 ## Despliegue
 
-`npm run build` deja en `dist/` ficheros estáticos, sin backend. Vale cualquier
-alojamiento estático (GitHub Pages, Netlify, Vercel). Las rutas son relativas
-(`base: './'`), así que también funciona servido desde una subcarpeta.
+Está en GitHub Pages: **https://samuvr.github.io/Entrenos/**
 
-Tiene que servirse por **HTTPS** (o localhost): sin eso el navegador no
-registra el service worker ni ofrece instalar la app.
+Cada push a `main` lo redespliega solo, con el workflow
+`.github/workflows/desplegar.yml`. Como `npm run build` es `tsc -b && vite
+build`, un error de tipos tumba el despliegue en vez de publicar algo roto. No
+pasa las pruebas de navegador: necesitan Chromium y un servidor levantado, y se
+lanzan en local (ver `pruebas/LEEME.md`).
+
+En GitHub hace falta tenerlo activado una vez: Settings → Pages → Source →
+**GitHub Actions**.
+
+Detalles que conviene no romper:
+
+- **`base: './'` en `vite.config.ts`.** Pages sirve el repo desde la subcarpeta
+  `/Entrenos/`; con rutas relativas funcionan los assets, el manifest, el
+  service worker y los iconos. Con rutas absolutas, ninguno.
+- **HTTPS** (o localhost). Sin eso el navegador ni registra el service worker ni
+  ofrece instalar la app, así que no habría ni PWA ni arranque sin conexión.
+  Pages lo da de serie.
+
+`npm run build` deja en `dist/` ficheros estáticos y sin backend, así que
+cualquier otro alojamiento estático (Netlify, Vercel) vale igual.
 
 ## Progresión
 
