@@ -1,0 +1,46 @@
+name: Desplegar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permite relanzar el despliegue a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un despliegue a la vez; si se empujan dos seguidos, gana el último.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # `npm run build` es `tsc -b && vite build`: un error de tipos tumba el
+      # despliegue en vez de publicar algo roto.
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: despliegue
+        uses: actions/deploy-pages@v4
