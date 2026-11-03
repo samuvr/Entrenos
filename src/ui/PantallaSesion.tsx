@@ -32,6 +32,23 @@ function clave(ejercicioId: string, numeroSerie: number): string {
 }
 
 /**
+ * Ejercicio que queda abierto después de anotar algo en `desdeId`.
+ *
+ * Si le quedan series, sigue abierto. Si no, el siguiente pendiente que venga
+ * detrás, y solo al final se vuelve a los que quedaron atrás: si un ejercicio
+ * se dejó para luego porque la máquina estaba ocupada, no puede reabrirse a
+ * cada serie del que se está haciendo.
+ */
+function siguienteFoco(modelo: ModeloSesion, desdeId: string): string | null {
+  const lista = modelo.ejercicios;
+  const desde = lista.findIndex((e) => e.ejercicio.id === desdeId);
+  if (desde === -1) return modelo.ejercicioActualId;
+  if (!lista[desde].terminado) return desdeId;
+  const ordenados = [...lista.slice(desde + 1), ...lista.slice(0, desde)];
+  return ordenados.find((e) => !e.terminado)?.ejercicio.id ?? null;
+}
+
+/**
  * Pantalla de sesión en curso. Cada confirmación se guarda al momento, así que
  * cerrar el navegador a mitad no pierde nada.
  */
@@ -42,8 +59,16 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
   const [peticion, setPeticion] = useState<Peticion | null>(null);
 
   const recargar = useCallback(async () => {
-    setModelo(await cargarModeloSesion(bloque, sesion, sesionRealizada));
+    const nuevo = await cargarModeloSesion(bloque, sesion, sesionRealizada);
+    setModelo(nuevo);
+    return nuevo;
   }, [bloque, sesion, sesionRealizada]);
+
+  /** Recarga y deja abierto el ejercicio que toca tras anotar en `ejercicioId`. */
+  const recargarDesde = async (ejercicioId: string) => {
+    const nuevo = await recargar();
+    setExpandidoManual(siguienteFoco(nuevo, ejercicioId));
+  };
 
   useEffect(() => {
     void recargar();
@@ -76,10 +101,7 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
       completada: true,
     });
     olvidarBorrador(ejercicio.id, numeroSerie);
-    // Se suelta el ejercicio fijado a mano para que el salto al siguiente
-    // ejercicio sea automático en cuanto se acaba el actual.
-    setExpandidoManual(null);
-    await recargar();
+    await recargarDesde(ejercicio.id);
   };
 
   const anotarNoCompletada = async (peticionActual: Peticion, motivo: MotivoOmision) => {
@@ -94,8 +116,7 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
       motivoOmision: motivo,
     });
     olvidarBorrador(peticionActual.ejercicio.id, peticionActual.numeroSerie);
-    setExpandidoManual(null);
-    await recargar();
+    await recargarDesde(peticionActual.ejercicio.id);
   };
 
   const saltar = async (peticionActual: Peticion, motivo: MotivoOmision) => {
@@ -106,8 +127,7 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
       peticionActual.total,
       motivo,
     );
-    setExpandidoManual(null);
-    await recargar();
+    await recargarDesde(peticionActual.ejercicio.id);
   };
 
   const terminar = async () => {

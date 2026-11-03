@@ -148,4 +148,26 @@ comprobar(
   'precarga el peso de la última vez',
 );
 
+// Máquina ocupada: se deja el press banca para luego y se abre otro ejercicio.
+// Cada serie del nuevo no puede volver a abrir el que quedó atrás.
+const abierto = async () => pagina.locator('.ejercicio.abierto .nombre').first().innerText();
+await tocar(
+  pagina.locator('.ejercicio', { hasText: 'Press de hombros' }).locator('.cabecera-ejercicio'),
+);
+await pagina.waitForTimeout(150);
+for (let i = 1; i <= 2; i += 1) {
+  await tocar(pagina.locator('.serie.activa .boton-confirmar'));
+  await pagina.waitForTimeout(150);
+  comprobar(
+    (await abierto()).includes('Press de hombros'),
+    `tras la serie ${i} sigue abierto el press de hombros, no el ejercicio dejado atrás`,
+  );
+}
+await tocar(pagina.locator('.serie.activa .boton-confirmar'));
+await pagina.waitForTimeout(150);
+comprobar(
+  (await abierto()).includes('Aperturas'),
+  'al acabarlo pasa al siguiente (aperturas), no vuelve al press banca',
+);
+
 await cerrar(navegador, errores);

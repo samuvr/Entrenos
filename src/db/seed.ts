@@ -7,13 +7,18 @@ import type { Bloque, Ejercicio, LetraSesion, Sesion, TipoCarga, Unidad } from '
  * Cambiar de bloque (el 4, el 5...) se hace editando este archivo y subiendo
  * SEED_VERSION: la app carga la semilla nueva sin tocar el historial ya guardado.
  */
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 export const BLOQUE_ID = 'bloque-3';
 
 const CARDIO_CAMINATA = '15-20 min de caminata inclinada (15 %, ~4,8 km/h).';
 
 /** Forma abreviada de un ejercicio en la semilla; el resto se completa solo. */
 interface EjercicioSemilla {
+  /**
+   * Id fijo, solo si el ejercicio se movió de sesión: conserva el id antiguo
+   * para que su historial siga colgando de él. Si no, sale de sesión y orden.
+   */
+  id?: string;
   nombre: string;
   series: number;
   repsMin: number;
@@ -97,6 +102,8 @@ const SESIONES: SesionSemilla[] = [
         pesoInicial: 8,
         tipoCarga: 'mancuerna',
         rangoExtendido: true,
+        notaTecnica: 'Los dos brazos a la vez, no alternando.',
+        notaReps: 'por brazo',
       },
     ],
   },
@@ -110,7 +117,19 @@ const SESIONES: SesionSemilla[] = [
       { nombre: 'Hip thrust en máquina', series: 3, repsMin: 10, repsMax: 12, pesoInicial: 32.5, tipoCarga: 'pin' },
       { nombre: 'Extensión de cuádriceps', series: 3, repsMin: 12, repsMax: 15, pesoInicial: 22.5, tipoCarga: 'pin' },
       { nombre: 'Curl femoral sentado', series: 3, repsMin: 12, repsMax: 15, pesoInicial: 32.5, tipoCarga: 'pin' },
-      { nombre: 'Gemelos de pie en máquina', series: 4, repsMin: 12, repsMax: 15, pesoInicial: 35, tipoCarga: 'pin' },
+      // Viene de la E: conserva su id para no perder el historial.
+      { id: 'bloque-3-E-5', nombre: 'Abductores en máquina', series: 3, repsMin: 15, repsMax: 15, pesoInicial: 30, tipoCarga: 'pin' },
+      {
+        nombre: 'Gemelos en prensa',
+        series: 4,
+        repsMin: 12,
+        repsMax: 15,
+        pesoInicial: 50,
+        tipoCarga: 'pin',
+        esNuevo: true,
+        notaTecnica:
+          'Piernas estiradas (sin bloquear la rodilla del todo) y solo las puntas de los pies en el borde inferior de la plataforma. Baja el talón todo lo que puedas, pausa abajo y empuja con los tobillos. El primer día ajusta el peso si 50 kg no cuadra.',
+      },
     ],
   },
   {
@@ -132,14 +151,17 @@ const SESIONES: SesionSemilla[] = [
         pesoInicial: 8,
         tipoCarga: 'mancuerna',
         rangoExtendido: true,
+        notaTecnica: 'Los dos brazos a la vez, no alternando.',
+        notaReps: 'por brazo',
       },
     ],
   },
   {
     letra: 'E',
-    nombre: 'Lower ligero + core',
+    nombre: 'Lower corto + core + cardio',
     rirObjetivo: '3-4',
-    notaCardio: `${CARDIO_CAMINATA} Si la fatiga es alta, 10-15 min.`,
+    notaCardio:
+      '30-35 min de cardio al terminar (caminata inclinada 15 %, ~4,8 km/h, o el aparato que prefieras).',
     aviso: 'Día ligero: RIR 3-4, no es para batir marcas.',
     ejercicios: [
       { nombre: 'Sentadilla goblet con mancuerna', series: 3, repsMin: 10, repsMax: 12, pesoInicial: 18, tipoCarga: 'mancuerna' },
@@ -165,9 +187,6 @@ const SESIONES: SesionSemilla[] = [
         notaTecnica:
           'Empujar la cadera hacia atrás con la espalda plana, sin doblar apenas la rodilla, y bajar solo hasta donde se llegue sin que la lumbar se redondee. Se empieza con la barra sola.',
       },
-      { nombre: 'Zancadas caminando con mancuernas', series: 3, repsMin: 10, repsMax: 10, pesoInicial: 8, tipoCarga: 'mancuerna', notaReps: 'por pierna' },
-      { nombre: 'Abductores en máquina', series: 3, repsMin: 15, repsMax: 15, pesoInicial: 30, tipoCarga: 'pin' },
-      { nombre: 'Gemelos sentado en máquina', series: 3, repsMin: 15, repsMax: 20, pesoInicial: 27.5, tipoCarga: 'pin' },
     ],
   },
 ];
@@ -208,7 +227,7 @@ export function construirSemilla(fechaInicio: string): DatosSemilla {
     s.ejercicios.forEach((e, i) => {
       const orden = i + 1;
       ejercicios.push({
-        id: `${sesionId}-${orden}`,
+        id: e.id ?? `${sesionId}-${orden}`,
         sesionId,
         orden,
         nombre: e.nombre,

@@ -83,8 +83,8 @@ comprobar(
 await pagina.getByRole('tab', { name: 'Por ejercicio' }).click();
 await pagina.waitForSelector('.tarjeta.ejercicio');
 comprobar(
-  (await pagina.locator('.tarjeta.ejercicio').count()) === 28,
-  'la vista por ejercicio lista los 28 del bloque',
+  (await pagina.locator('.tarjeta.ejercicio').count()) === 26,
+  'la vista por ejercicio lista los 26 del bloque',
 );
 
 const tarjetaPress = pagina.locator('.tarjeta.ejercicio').first();

@@ -102,7 +102,14 @@ function construirDia(
   porDia: Map<string, SerieRealizada[]>,
 ): DiaDelHistorial {
   const suyas = porDia.get(realizada.id) ?? [];
-  const plantilla = ejerciciosPorSesion.get(realizada.sesionId) ?? [];
+  // La plantilla de la sesión, más los ejercicios que ese día se hicieron en
+  // ella pero que luego se movieron a otra (los abductores, de la E a la C).
+  const propios = ejerciciosPorSesion.get(realizada.sesionId) ?? [];
+  const idsHechos = new Set(suyas.map((s) => s.ejercicioId));
+  const movidos = [...ejerciciosPorSesion.values()]
+    .flat()
+    .filter((e) => e.sesionId !== realizada.sesionId && idsHechos.has(e.id));
+  const plantilla = [...propios, ...movidos];
 
   const ejercicios: EjercicioDeSesion[] = [];
   for (const ejercicio of plantilla) {
