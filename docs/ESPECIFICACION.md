@@ -178,9 +178,11 @@ Cardio final: 15-20 min de caminata inclinada (15 %, ~4,8 km/h).
 | 2 | Jalón al pecho | 3 | 10-12 | 37,5 kg | polea |
 | 3 | T-Bar row con apoyo pectoral (NUEVO) | 3 | 10-12 | 15 kg | discos |
 | 4 | Pájaros / Reverse Pec Deck | 3 | 12-15 | 7,5 kg | pin |
-| 5 | Curl de bíceps con mancuerna (rango extendido) | 3 | 10-16 | 8 kg | mancuerna |
+| 5 | Curl de bíceps con mancuerna (rango extendido) | 3 | 10-16 por brazo | 8 kg | mancuerna |
 
 Nota técnica de la T-Bar: apoyar bien el pecho en la almohadilla y no despegar los hombros para tirar.
+
+Nota técnica de los curls (aquí y en la D): los dos brazos a la vez, no alternando.
 
 Cardio final: 15-20 min de caminata inclinada.
 
@@ -193,7 +195,12 @@ Cardio final: 15-20 min de caminata inclinada.
 | 3 | Hip thrust en máquina | 3 | 10-12 | 32,5 kg | pin |
 | 4 | Extensión de cuádriceps | 3 | 12-15 | 22,5 kg | pin |
 | 5 | Curl femoral sentado | 3 | 12-15 | 32,5 kg | pin |
-| 6 | Gemelos de pie en máquina | 4 | 12-15 | 35 kg | pin |
+| 6 | Abductores en máquina (viene de la E) | 3 | 15 | 30 kg | pin |
+| 7 | Gemelos en prensa (NUEVO) | 4 | 12-15 | 50 kg | pin |
+
+Nota técnica de los gemelos en prensa: piernas estiradas (sin bloquear la rodilla del todo) y solo las puntas de los pies en el borde inferior de la plataforma. Baja el talón todo lo que puedas, pausa abajo y empuja con los tobillos. El primer día ajusta el peso si 50 kg no cuadra.
+
+Los abductores conservan el id `bloque-3-E-5` para no perder su historial.
 
 Sin cardio.
 
@@ -205,26 +212,25 @@ Sin cardio.
 | 2 | Remo unilateral con mancuerna | 3 | 10-12 por brazo | 20 kg | mancuerna |
 | 3 | Jalón agarre neutro / estrecho | 3 | 10-12 | 40 kg | polea |
 | 4 | Press francés con barra Z | 3 | 10-12 | 16 kg | barra |
-| 5 | Curl martillo con mancuerna (rango extendido) | 3 | 10-16 | 8 kg | mancuerna |
+| 5 | Curl martillo con mancuerna (rango extendido) | 3 | 10-16 por brazo | 8 kg | mancuerna |
 
 Este día es deliberadamente ligero. La app debe mostrar un aviso: "Día ligero: RIR 3-4, no es para batir marcas".
 
 Cardio final: 15-20 min de caminata inclinada.
 
-### Sesión E — Lower ligero + core · RIR 3-4
+### Sesión E — Lower corto + core + cardio · RIR 3-4
 
 | Orden | Ejercicio | Series | Reps | Peso inicial | Tipo |
 |---|---|---|---|---|---|
 | 1 | Sentadilla goblet con mancuerna | 3 | 10-12 | 18 kg | mancuerna |
 | 2 | CORE: Plancha lateral | 3 | 20-30 s por lado | corporal | corporal |
 | 3 | Peso muerto rumano en Smith (NUEVO) | 3 | 10-12 | barra sola | smith |
-| 4 | Zancadas caminando con mancuernas | 3 | 10 por pierna | 8 kg/mano | mancuerna |
-| 5 | Abductores en máquina | 3 | 15 | 30 kg | pin |
-| 6 | Gemelos sentado en máquina | 3 | 15-20 | 27,5 kg | pin |
 
 Nota técnica del rumano en Smith: empujar la cadera hacia atrás con la espalda plana, sin doblar apenas la rodilla, y bajar solo hasta donde se llegue sin que la lumbar se redondee.
 
-Cardio final: 15-20 min de caminata inclinada. Si la fatiga es alta, 10-15 min.
+Las zancadas y los gemelos sentado salen del bloque; los abductores pasan a la C.
+
+Cardio final: 30-35 min al terminar (caminata inclinada 15 %, ~4,8 km/h, o el aparato que prefieras).
 
 ## 8. Reglas de negocio a implementar
 

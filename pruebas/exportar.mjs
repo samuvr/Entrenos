@@ -109,7 +109,7 @@ const rutaJSON = await descargaJSON.path();
 const copia = JSON.parse(await readFile(rutaJSON, 'utf8'));
 
 comprobar(copia.formato === 'entrenos' && copia.version === 1, 'la copia se identifica');
-comprobar(copia.datos.ejercicios.length === 28, 'la copia se lleva los 28 ejercicios del bloque');
+comprobar(copia.datos.ejercicios.length === 26, 'la copia se lleva los 26 ejercicios del bloque');
 comprobar(copia.datos.sesionesRealizadas.length === 5, 'la copia se lleva las 5 sesiones hechas');
 comprobar(copia.datos.seriesRealizadas.length === 5, 'la copia se lleva las series');
 
