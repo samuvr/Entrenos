@@ -1,5 +1,6 @@
 import type { VezAnterior } from '../db/registro';
 import type { Ejercicio, SerieRealizada } from '../db/types';
+import { esDescarga } from './rotacion';
 
 /**
  * Doble progresión (reglas 1 y 2), que es la regla que más se incumple:
@@ -73,11 +74,11 @@ export function progresionDesde(
 export function progresionDeHoy(
   ejercicio: Ejercicio,
   ultimaVez: VezAnterior | undefined,
-  numeroRotaciones: number,
+  rotacionDescarga: number | null,
   descargaHoy: boolean,
 ): Progresion | null {
   if (descargaHoy || !ultimaVez) return null;
-  if (ultimaVez.rotacion >= numeroRotaciones) return null;
+  if (esDescarga(ultimaVez.rotacion, rotacionDescarga)) return null;
   return progresionDesde(ejercicio, ultimaVez.series);
 }
 
@@ -92,9 +93,9 @@ export function progresionDeHoy(
 export function estaEstancado(
   ejercicio: Ejercicio,
   historial: VezAnterior[],
-  numeroRotaciones: number,
+  rotacionDescarga: number | null,
 ): boolean {
-  const utiles = historial.filter((v) => v.rotacion < numeroRotaciones).slice(0, 3);
+  const utiles = historial.filter((v) => !esDescarga(v.rotacion, rotacionDescarga)).slice(0, 3);
   if (utiles.length < 3) return false;
 
   const valores = utiles.map((v) => valorDeTrabajo(ejercicio, v.series));

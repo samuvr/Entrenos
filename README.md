@@ -214,6 +214,8 @@ en el tope del rango y luego repetir el mismo peso. La app la cierra sola.
 - Si esa vez no se sube, el aviso vuelve a salir la siguiente.
 - En los ejercicios corporales no hay peso que subir: ahí se progresa alargando
   el tiempo (+5 s), que es lo que dice la tabla de incrementos.
+- El **bloque 3 va sin descarga** (`conDescarga: false` en la semilla): su
+  rotación 6 es normal. En los bloques que sí la tengan:
 - **En la rotación de descarga no se sube**, ni se progresa desde ella: repite
   el peso de la rotación 5 con menos series, así que llegar al tope ahí no
   cuenta como haberlo ganado.

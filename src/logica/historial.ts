@@ -7,6 +7,7 @@ import { db } from '../db/db';
 import type { VezAnterior } from '../db/registro';
 import type { Bloque, Ejercicio, SerieRealizada, Sesion, SesionRealizada } from '../db/types';
 import { cumplioObjetivo, estaEstancado, valorDeTrabajo } from './progresion';
+import { rotacionDeDescarga } from './rotacion';
 
 /**
  * Historial del bloque (punto 5.4 de la spec), en dos cortes: qué se hizo cada
@@ -177,7 +178,7 @@ function construirEjercicio(
     ejercicio,
     sesion,
     puntos,
-    estancado: estaEstancado(ejercicio, comoVeces, bloque.numeroRotaciones),
+    estancado: estaEstancado(ejercicio, comoVeces, rotacionDeDescarga(bloque)),
   };
 }
 

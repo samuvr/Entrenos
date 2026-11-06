@@ -30,6 +30,11 @@ export interface Bloque {
   id: string;
   nombre: string;
   numeroRotaciones: number;
+  /**
+   * Si la última rotación del bloque es de descarga. Sin el campo, sí (era lo
+   * fijo en los bloques guardados antes de que existiera).
+   */
+  conDescarga?: boolean;
   fechaInicio: string;
   fechaFin: string | null;
   activo: boolean;
@@ -75,7 +80,7 @@ export interface SesionRealizada {
   id: string;
   bloqueId: string;
   sesionId: string;
-  /** 1-6. La 6 es la rotación de descarga. */
+  /** 1-6. La 6 es la rotación de descarga, si el bloque la tiene. */
   rotacion: number;
   /** Fecha del entrenamiento, "AAAA-MM-DD". */
   fecha: string;

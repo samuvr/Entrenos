@@ -66,7 +66,10 @@ comprobar(
   (await pagina.locator('.hoy-meta').first().innerText()).includes('Rotación 6 de 6'),
   'tras 25 sesiones entra en la rotación 6',
 );
-comprobar(await pagina.locator('.banner-descarga').isVisible(), 'avisa de la descarga en Inicio');
+comprobar(
+  (await pagina.locator('.banner-descarga').count()) === 0,
+  'el bloque 3 no tiene descarga: la rotación 6 no la avisa',
+);
 
 // El día ligero (sesión D) lleva su propio aviso.
 await sembrarHistorial(pagina, 3);

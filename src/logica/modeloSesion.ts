@@ -3,7 +3,7 @@ import { obtenerHistorialPorEjercicio, type VezAnterior } from '../db/registro';
 import type { Bloque, Ejercicio, SerieRealizada, Sesion, SesionRealizada } from '../db/types';
 import { valoresPrecargados, type Valores } from './precarga';
 import { estaEstancado, progresionDeHoy, progresionDesde, type Progresion } from './progresion';
-import { esDescarga, seriesObjetivo } from './rotacion';
+import { esDescarga, rotacionDeDescarga, seriesObjetivo } from './rotacion';
 
 export interface SerieEnCurso {
   numeroSerie: number;
@@ -53,12 +53,13 @@ export async function cargarModeloSesion(
     sesionRealizada.id,
   );
 
-  const descarga = esDescarga(sesionRealizada.rotacion, bloque.numeroRotaciones);
+  const rotacionDescarga = rotacionDeDescarga(bloque);
+  const descarga = esDescarga(sesionRealizada.rotacion, rotacionDescarga);
   const enCurso = ejercicios.map((ejercicio) =>
     construirEjercicio(
       ejercicio,
       descarga,
-      bloque.numeroRotaciones,
+      rotacionDescarga,
       registradas,
       historialPorEjercicio.get(ejercicio.id) ?? [],
     ),
@@ -79,13 +80,13 @@ export async function cargarModeloSesion(
 function construirEjercicio(
   ejercicio: Ejercicio,
   descarga: boolean,
-  numeroRotaciones: number,
+  rotacionDescarga: number | null,
   registradas: SerieRealizada[],
   historial: VezAnterior[],
 ): EjercicioEnCurso {
   const suyas = registradas.filter((s) => s.ejercicioId === ejercicio.id);
   const ultimaVez = historial[0];
-  const progresion = progresionDeHoy(ejercicio, ultimaVez, numeroRotaciones, descarga);
+  const progresion = progresionDeHoy(ejercicio, ultimaVez, rotacionDescarga, descarga);
 
   // Si se registraron más series de las previstas (p. ej. venía de descarga),
   // se muestran todas para no esconder nada de lo ya hecho.
@@ -117,6 +118,6 @@ function construirEjercicio(
     // Lo de hoy solo se juzga cuando el ejercicio está cerrado; a mitad de
     // ejercicio todavía no se sabe si se cumple el objetivo.
     logrado: terminado && !descarga ? progresionDesde(ejercicio, suyas) : null,
-    estancado: estaEstancado(ejercicio, historial, numeroRotaciones),
+    estancado: estaEstancado(ejercicio, historial, rotacionDescarga),
   };
 }

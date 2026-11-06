@@ -7,6 +7,7 @@ import {
   cerrar,
   comprobar,
   escribirFilas,
+  ponerDescarga,
   sembrarHistorial,
   vaciarTabla,
   URL_BASE,
@@ -132,10 +133,22 @@ comprobar(
   'con 3 series al tope y una a 9 reps tampoco se sube',
 );
 
-// ---------- En descarga no se sube ----------
+// ---------- Rotación 6 sin descarga: se sube como siempre ----------
 
 // 25 sesiones: la siguiente A cae en la rotación 6, y la A anterior (h-20) se
-// completó entera al tope. Aun así no toca subir: la descarga repite peso.
+// completó entera al tope. El bloque 3 no tiene descarga: toca subir.
+await preparar(25, pressBanca('h-20', 35, 10));
+await pagina.getByRole('button', { name: 'Empezar sesión A' }).click();
+await pagina.waitForSelector('.serie.activa');
+comprobar(
+  (await abierto.locator('.banner-sube').count()) === 1,
+  'sin descarga, en la rotación 6 se propone subir',
+);
+
+// ---------- En descarga no se sube ----------
+
+// Mismo caso con la descarga activada: la descarga repite peso.
+await ponerDescarga(pagina, true);
 await preparar(25, pressBanca('h-20', 35, 10));
 await pagina.getByRole('button', { name: 'Empezar sesión A' }).click();
 await pagina.waitForSelector('.serie.activa');

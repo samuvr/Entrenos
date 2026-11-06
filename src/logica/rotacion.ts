@@ -16,9 +16,19 @@ export function rotacionDeSesion(
   return Math.min(hechas + 1, numeroRotaciones);
 }
 
-/** La última rotación del bloque (la 6) es de descarga. */
-export function esDescarga(rotacion: number, numeroRotaciones: number): boolean {
-  return rotacion >= numeroRotaciones;
+/**
+ * La rotación de descarga del bloque: la última (la 6), o ninguna si el bloque
+ * va sin descarga.
+ */
+export function rotacionDeDescarga(
+  bloque: Pick<Bloque, 'numeroRotaciones' | 'conDescarga'>,
+): number | null {
+  return bloque.conDescarga === false ? null : bloque.numeroRotaciones;
+}
+
+/** Si una rotación es de descarga, dada la rotación de descarga del bloque. */
+export function esDescarga(rotacion: number, rotacionDescarga: number | null): boolean {
+  return rotacionDescarga !== null && rotacion >= rotacionDescarga;
 }
 
 /** En descarga se hacen 2 series en lugar de las prescritas. */
@@ -77,7 +87,7 @@ export function calcularEstadoBloque(
     numeroSesion: Math.min(completadas + 1, totalSesiones),
     totalSesiones,
     completadas,
-    descarga: esDescarga(rotacion, bloque.numeroRotaciones),
+    descarga: esDescarga(rotacion, rotacionDeDescarga(bloque)),
     bloqueTerminado: completadas >= totalSesiones,
     ultimaRealizada: realizadas[realizadas.length - 1],
   };

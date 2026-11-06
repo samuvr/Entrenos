@@ -1,6 +1,6 @@
 import { formatearPeso, formatearRango } from '../db/formato';
 import type { Bloque, Ejercicio, Sesion, SesionRealizada } from '../db/types';
-import { esDescarga, rotacionDeSesion, seriesObjetivo } from '../logica/rotacion';
+import { esDescarga, rotacionDeDescarga, rotacionDeSesion, seriesObjetivo } from '../logica/rotacion';
 
 interface Props {
   bloque: Bloque;
@@ -40,7 +40,7 @@ export function PantallaElegirSesion({
 
       {sesiones.map((sesion) => {
         const rotacion = rotacionDeSesion(realizadas, sesion.id, bloque.numeroRotaciones);
-        const descarga = esDescarga(rotacion, bloque.numeroRotaciones);
+        const descarga = esDescarga(rotacion, rotacionDeDescarga(bloque));
         const ejercicios = ejerciciosPorSesion.get(sesion.id) ?? [];
         const esLaQueToca = sesion.id === sesionQueTocaId;
 

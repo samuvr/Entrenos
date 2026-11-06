@@ -39,6 +39,7 @@ Por tanto:
 - Debe existir la opción de **saltar a otra sesión manualmente** (por si una máquina está ocupada o el usuario decide cambiar), pero es una acción secundaria, no la principal.
 - Un **bloque** son 6 rotaciones completas = 30 sesiones. La app muestra el progreso ("Rotación 3 de 6, sesión 12 de 30").
 - La **rotación 6 es de descarga**: mismos ejercicios y mismo peso que la rotación 5, pero **2 series en vez de 3-4** y sin llegar cerca del fallo. La app debe aplicar esto automáticamente al llegar a la rotación 6 y avisarlo visiblemente.
+- **Excepción del bloque 3: va sin descarga.** Hubo semanas de descanso por medio, así que su rotación 6 es una rotación normal (series completas, se progresa como siempre). Cada bloque lo indica con `conDescarga`; si falta, el bloque tiene descarga.
 
 ## 4. Modelo de datos
 
@@ -236,7 +237,7 @@ Cardio final: 30-35 min al terminar (caminata inclinada 15 %, ~4,8 km/h, o el ap
 
 1. **Doble progresión.** Todas las series completadas en el tope del rango de repeticiones → subir el incremento correspondiente a su tipo de carga en la siguiente sesión de ese ejercicio.
 2. **Rango extendido.** Los tres ejercicios marcados usan un rango largo. Misma regla, pero el tope es más alto (20 en laterales, 16 en los curls).
-3. **Rotación 6 = descarga.** Mismo peso que la rotación 5, pero 2 series en lugar de las prescritas. La app lo aplica sola y lo avisa.
+3. **Rotación 6 = descarga** (salvo en los bloques marcados sin descarga, como el 3). Mismo peso que la rotación 5, pero 2 series en lugar de las prescritas. La app lo aplica sola y lo avisa.
 4. **Orden de sesiones.** La siguiente sesión es siempre la que sigue en el ciclo A→B→C→D→E a la última completada.
 5. **Los dos primeros ejercicios de cada sesión son prioritarios.** Si el usuario intenta saltarse el ejercicio 1 o el 2 (el core), pedir confirmación. El core se saltaba sistemáticamente en el bloque anterior y por eso ahora va en segunda posición.
 6. **Fin de bloque.** Al completar las 30 sesiones, ofrecer exportar el CSV completo y cerrar el bloque.
