@@ -160,3 +160,9 @@ export function vaciarTabla(pagina, tabla) {
     });
   }, tabla);
 }
+
+/** Activa o quita la descarga final del bloque 3 (la semilla la trae quitada). */
+export async function ponerDescarga(pagina, conDescarga) {
+  const [bloque] = await leerTabla(pagina, 'bloques');
+  await escribirFilas(pagina, 'bloques', [{ ...bloque, conDescarga }]);
+}

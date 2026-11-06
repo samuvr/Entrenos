@@ -7,7 +7,7 @@ import type { Bloque, Ejercicio, LetraSesion, Sesion, TipoCarga, Unidad } from '
  * Cambiar de bloque (el 4, el 5...) se hace editando este archivo y subiendo
  * SEED_VERSION: la app carga la semilla nueva sin tocar el historial ya guardado.
  */
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 3;
 export const BLOQUE_ID = 'bloque-3';
 
 const CARDIO_CAMINATA = '15-20 min de caminata inclinada (15 %, ~4,8 km/h).';
@@ -203,6 +203,9 @@ export function construirSemilla(fechaInicio: string): DatosSemilla {
     id: BLOQUE_ID,
     nombre: 'Bloque 3',
     numeroRotaciones: 6,
+    // Bloque 3 sin descarga final: hubo semanas de descanso por medio, así que
+    // la rotación 6 es una rotación normal.
+    conDescarga: false,
     fechaInicio,
     fechaFin: null,
     activo: true,
