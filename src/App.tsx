@@ -22,7 +22,8 @@ import type {
 } from './db/types';
 import { calcularEstadoCopia } from './logica/copia';
 import { cargarHistorial, type Historial } from './logica/historial';
-import { calcularEstadoBloque, rotacionDeSesion } from './logica/rotacion';
+import { calcularEstadoBloque, rotacionDeSesion, sesionesDelCiclo } from './logica/rotacion';
+import { PantallaAjustes } from './ui/PantallaAjustes';
 import { Modal } from './ui/Modal';
 import { PantallaDatos } from './ui/PantallaDatos';
 import { PantallaElegirSesion } from './ui/PantallaElegirSesion';
@@ -42,7 +43,7 @@ interface Datos {
   rangoPeso: RangoPesoCorporal;
 }
 
-type Vista = 'inicio' | 'elegir' | 'sesion' | 'datos' | 'historial' | 'peso';
+type Vista = 'inicio' | 'elegir' | 'sesion' | 'datos' | 'historial' | 'peso' | 'ajustes';
 
 export function App() {
   const [datos, setDatos] = useState<Datos | null>(null);
@@ -127,7 +128,11 @@ export function App() {
   const { bloque, sesiones, ejerciciosPorSesion, realizadas, enCurso, ultimaCopia } = datos;
   const { pesos, rangoPeso } = datos;
   const estado = calcularEstadoBloque(bloque, sesiones, realizadas);
-  const estadoCopia = calcularEstadoCopia(estado.completadas, sesiones.length, ultimaCopia);
+  const estadoCopia = calcularEstadoCopia(
+    estado.completadas,
+    sesionesDelCiclo(sesiones).length,
+    ultimaCopia,
+  );
 
   const empezar = async (sesion: Sesion, descartarLaOtra = false) => {
     const rotacion = rotacionDeSesion(realizadas, sesion.id, bloque.numeroRotaciones);
@@ -189,6 +194,10 @@ export function App() {
     );
   }
 
+  if (vista === 'ajustes') {
+    return <PantallaAjustes onVolver={() => setVista('inicio')} />;
+  }
+
   if (vista === 'peso') {
     return (
       <PantallaPesoCorporal
@@ -232,10 +241,12 @@ export function App() {
         pendiente={enCurso}
         estadoCopia={estadoCopia}
         onEmpezar={() => void empezar(estado.siguiente)}
+        onEmpezarOpcional={(sesion) => void empezar(sesion)}
         onElegirOtra={() => setVista('elegir')}
         onCopias={() => setVista('datos')}
         onHistorial={() => setVista('historial')}
         onPesoCorporal={() => setVista('peso')}
+        onAjustes={() => setVista('ajustes')}
         onCerrarBloque={() => setConfirmarCierre(true)}
         onReabrirBloque={async () => {
           await reabrirBloque(bloque.id);
@@ -257,7 +268,7 @@ export function App() {
       {confirmarCierre && (
         <Modal
           titulo="Cerrar el bloque"
-          aviso="Exporta antes el CSV y guarda la copia: es lo que vas a querer para preparar el bloque 4."
+          aviso="Exporta antes el CSV y guarda la copia: es lo que vas a querer para preparar el bloque siguiente."
           onCerrar={() => setConfirmarCierre(false)}
         >
           <div className="modal-opciones">

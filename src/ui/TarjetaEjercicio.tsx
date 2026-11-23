@@ -19,6 +19,18 @@ interface Props {
   onDeshacer: (numeroSerie: number) => void;
   onSaltar: () => void;
   onReanudar: () => void;
+  /** Salta la superserie entera por falta de tiempo. */
+  onSaltarSuperserie: () => void;
+  /** Activa o desactiva "Consolidar técnica". */
+  onConsolidar: () => void;
+}
+
+/** "1:30" o "45 s" para el descanso del ejercicio. */
+function textoDescanso(segundos: number): string {
+  if (segundos < 60) return `${segundos} s`;
+  const m = Math.floor(segundos / 60);
+  const s = segundos % 60;
+  return s === 0 ? `${m} min` : `${m}:${String(s).padStart(2, '0')} min`;
 }
 
 /** "37,5 kg", "50 s" o "12 reps", según en qué progrese el ejercicio. */
@@ -38,6 +50,8 @@ export function TarjetaEjercicio({
   onDeshacer,
   onSaltar,
   onReanudar,
+  onSaltarSuperserie,
+  onConsolidar,
 }: Props) {
   const { ejercicio, series, total, ultimaVez } = estado;
   const enSegundos = ejercicio.unidad === 'segundos';
@@ -57,6 +71,12 @@ export function TarjetaEjercicio({
           <span className="nombre">
             {ejercicio.nombre}
             {ejercicio.esCore && <span className="etiqueta etiqueta-core">core</span>}
+            {estado.companeros.length > 0 && (
+              <span className="etiqueta etiqueta-superserie">superserie</span>
+            )}
+            {estado.consolidando && (
+              <span className="etiqueta etiqueta-consolidacion">en consolidación</span>
+            )}
             {estado.subeHoy && <span className="etiqueta etiqueta-sube">sube</span>}
           </span>
           <span className={`progreso${estado.terminado && !completo ? ' parcial' : ''}`}>
@@ -84,6 +104,12 @@ export function TarjetaEjercicio({
           {ejercicio.nombre}
           {ejercicio.esCore && <span className="etiqueta etiqueta-core">core</span>}
           {ejercicio.esNuevo && <span className="etiqueta etiqueta-nuevo">nuevo</span>}
+          {estado.companeros.length > 0 && (
+            <span className="etiqueta etiqueta-superserie">superserie</span>
+          )}
+          {estado.consolidando && (
+            <span className="etiqueta etiqueta-consolidacion">en consolidación</span>
+          )}
           {estado.estancado && !estado.subeHoy && (
             <span className="etiqueta etiqueta-estancado">estancado</span>
           )}
@@ -91,6 +117,11 @@ export function TarjetaEjercicio({
         <span className="progreso">{objetivo}</span>
       </div>
 
+      {estado.companeros.length > 0 && (
+        <p className="nota nota-superserie">
+          Alterna con {estado.companeros.map((e) => e.nombre).join(' y ')}.
+        </p>
+      )}
       {ejercicio.notaReps && <p className="nota">{ejercicio.notaReps}</p>}
       {ejercicio.notaTecnica && <p className="nota nota-tecnica">{ejercicio.notaTecnica}</p>}
 
@@ -111,9 +142,19 @@ export function TarjetaEjercicio({
       )}
       {estado.estancado && !estado.subeHoy && (
         <p className="nota">
-          Llevas 3 sesiones con el mismo peso sin llegar al tope del rango.
+          Llevas 3 sesiones con el mismo peso sin sumar repeticiones. Si es por técnica,
+          actívale «Consolidar técnica».
         </p>
       )}
+      {estado.consolidando && (
+        <p className="nota">
+          En consolidación: repite el peso, no cuenta para el estancamiento. Desactívalo cuando
+          la técnica esté asentada.
+        </p>
+      )}
+      {ejercicio.descansoSeg ? (
+        <p className="nota">Descanso: {textoDescanso(ejercicio.descansoSeg)}</p>
+      ) : null}
 
       <p className="ultima-vez">
         {ultimaVez ? (
@@ -238,6 +279,14 @@ export function TarjetaEjercicio({
           Saltar ejercicio
         </button>
       )}
+      {!estado.terminado && estado.companeros.length > 0 && (
+        <button type="button" className="boton boton-plano" onClick={onSaltarSuperserie}>
+          Saltar la superserie (falta de tiempo)
+        </button>
+      )}
+      <button type="button" className="boton boton-plano" onClick={onConsolidar}>
+        {estado.consolidando ? 'Terminar la consolidación' : 'Consolidar técnica'}
+      </button>
     </section>
   );
 }

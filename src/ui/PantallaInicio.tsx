@@ -11,12 +11,15 @@ interface Props {
   pendiente: SesionRealizada | undefined;
   estadoCopia: EstadoCopia;
   onEmpezar: () => void;
+  /** Empezar una sesión opcional (cardio y core), que no mueve el ciclo. */
+  onEmpezarOpcional: (sesion: Sesion) => void;
   onElegirOtra: () => void;
   onContinuarPendiente: () => void;
   onDescartarPendiente: () => void;
   onCopias: () => void;
   onHistorial: () => void;
   onPesoCorporal: () => void;
+  onAjustes: () => void;
   onCerrarBloque: () => void;
   onReabrirBloque: () => void;
 }
@@ -55,12 +58,14 @@ export function PantallaInicio({
   pendiente,
   estadoCopia,
   onEmpezar,
+  onEmpezarOpcional,
   onElegirOtra,
   onContinuarPendiente,
   onDescartarPendiente,
   onCopias,
   onHistorial,
   onPesoCorporal,
+  onAjustes,
   onCerrarBloque,
   onReabrirBloque,
 }: Props) {
@@ -69,6 +74,7 @@ export function PantallaInicio({
   const sesionPendiente = pendiente
     ? sesiones.find((s) => s.id === pendiente.sesionId)
     : undefined;
+  const opcionales = sesiones.filter((s) => s.opcional);
 
   return (
     <main className="app">
@@ -97,7 +103,8 @@ export function PantallaInicio({
             {estado.completadas} de {estado.totalSesiones} sesiones.
           </p>
           <p className="nota">
-            El bloque 4 se carga editando los datos de semilla. Guarda la copia antes de tocar nada.
+            El bloque siguiente se carga desde «Copia de seguridad y exportar» → «Cargar plan de
+            bloque». Guarda la copia antes de tocar nada.
           </p>
           <button type="button" className="boton boton-principal" onClick={onCopias}>
             Exportar y guardar copia
@@ -115,7 +122,8 @@ export function PantallaInicio({
             </h1>
             <p className="hoy-meta">
               Rotación {estado.rotacion} de {bloque.numeroRotaciones} · sesión{' '}
-              {estado.numeroSesion} de {estado.totalSesiones} · RIR {siguiente.rirObjetivo}
+              {estado.numeroSesion} de {estado.totalSesiones}
+              {siguiente.rirObjetivo && ` · RIR ${siguiente.rirObjetivo}`}
             </p>
             <div
               className="progreso-bloque"
@@ -153,11 +161,24 @@ export function PantallaInicio({
               SEMANA DE DESCARGA: 2 series, sin acercarte al fallo
             </p>
           )}
+          {estado.tecnica && (
+            <p className="banner banner-tecnica">Sesión de técnica: no subas peso</p>
+          )}
           {siguiente.aviso && <p className="banner banner-aviso">{siguiente.aviso}</p>}
 
           <button type="button" className="boton boton-principal boton-empezar" onClick={onEmpezar}>
             Empezar sesión {siguiente.letra}
           </button>
+          {opcionales.map((opcional) => (
+            <button
+              key={opcional.id}
+              type="button"
+              className="boton boton-secundario boton-opcional"
+              onClick={() => onEmpezarOpcional(opcional)}
+            >
+              Día opcional: {opcional.letra} — {opcional.nombre.replace(/\s*\(opcional\)\s*$/i, '')}
+            </button>
+          ))}
           <button type="button" className="boton boton-plano" onClick={onElegirOtra}>
             Elegir otra sesión
           </button>
@@ -181,6 +202,9 @@ export function PantallaInicio({
         </button>
         <button type="button" className="boton boton-plano" onClick={onCopias}>
           Copia de seguridad y exportar
+        </button>
+        <button type="button" className="boton boton-plano" onClick={onAjustes}>
+          Ajustes
         </button>
       </nav>
     </main>

@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
+import { leerPantallaEncendida } from '../db/ajustes';
+import { alternarConsolidacion } from '../db/consolidacion';
 import {
   borrarSerie,
   deshacerSaltoEjercicio,
   registrarSerie,
   saltarEjercicio,
+  saltarSuperserie,
   terminarSesion,
 } from '../db/registro';
 import type { Bloque, Ejercicio, MotivoOmision, Sesion, SesionRealizada } from '../db/types';
 import { cargarModeloSesion, type ModeloSesion } from '../logica/modeloSesion';
 import type { Valores } from '../logica/precarga';
+import {
+  cancelarAviso,
+  notificarDesdeLaPagina,
+  pitar,
+  prepararAudio,
+  programarAviso,
+  vibrar,
+} from './descanso';
 import { Modal } from './Modal';
+import { usePantallaEncendida } from './pantallaEncendida';
 import { SelectorMotivo } from './SelectorMotivo';
 import { TarjetaEjercicio } from './TarjetaEjercicio';
+import { TemporizadorDescanso } from './TemporizadorDescanso';
 
 interface Props {
   bloque: Bloque;
@@ -43,10 +56,67 @@ function siguienteFoco(modelo: ModeloSesion, desdeId: string): string | null {
   const lista = modelo.ejercicios;
   const desde = lista.findIndex((e) => e.ejercicio.id === desdeId);
   if (desde === -1) return modelo.ejercicioActualId;
-  if (!lista[desde].terminado) return desdeId;
-  const ordenados = [...lista.slice(desde + 1), ...lista.slice(0, desde)];
+
+  // En superserie se alterna: tras A1 va A2, tras A2 vuelve A1, mientras a
+  // alguno le queden series. Al acabar el grupo se sigue después de él.
+  const grupo = lista[desde].ejercicio.superserie;
+  let ultimo = desde;
+  if (grupo) {
+    const indices = lista
+      .map((e, i) => (e.ejercicio.superserie === grupo ? i : -1))
+      .filter((i) => i >= 0);
+    const posicion = indices.indexOf(desde);
+    const rueda = [...indices.slice(posicion + 1), ...indices.slice(0, posicion + 1)];
+    const siguiente = rueda.find((i) => !lista[i].terminado);
+    if (siguiente !== undefined) return lista[siguiente].ejercicio.id;
+    ultimo = Math.max(...indices);
+  } else if (!lista[desde].terminado) {
+    return desdeId;
+  }
+
+  const ordenados = [...lista.slice(ultimo + 1), ...lista.slice(0, desde)];
   return ordenados.find((e) => !e.terminado)?.ejercicio.id ?? null;
 }
+
+/** Descanso en marcha. Se guarda para sobrevivir a una recarga de la página. */
+interface Descanso {
+  finEn: number;
+  duracion: number;
+  siguiente: string | null;
+}
+
+function claveDescanso(sesionRealizadaId: string): string {
+  return `entrenos:descanso:${sesionRealizadaId}`;
+}
+
+function leerDescanso(sesionRealizadaId: string): Descanso | null {
+  try {
+    const crudo = localStorage.getItem(claveDescanso(sesionRealizadaId));
+    return crudo ? (JSON.parse(crudo) as Descanso) : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarDescanso(sesionRealizadaId: string, descanso: Descanso | null): void {
+  try {
+    if (descanso) localStorage.setItem(claveDescanso(sesionRealizadaId), JSON.stringify(descanso));
+    else localStorage.removeItem(claveDescanso(sesionRealizadaId));
+  } catch {
+    // Sin almacenamiento el descanso funciona igual; solo no sobrevive a recargar.
+  }
+}
+
+/** "Pájaros / Reverse Pec Deck · serie 2" para el ejercicio que viene. */
+function textoSiguiente(modelo: ModeloSesion, ejercicioId: string | null): string | null {
+  const estado = modelo.ejercicios.find((e) => e.ejercicio.id === ejercicioId);
+  const serie = estado?.series.find((s) => !s.registrada);
+  if (!estado || !serie) return null;
+  return `${estado.ejercicio.nombre} · serie ${serie.numeroSerie}`;
+}
+
+/** Si al terminar el descanso han pasado más de estos ms, ya no se pita. */
+const TOLERANCIA_PITIDO_MS = 4000;
 
 /**
  * Pantalla de sesión en curso. Cada confirmación se guarda al momento, así que
@@ -57,6 +127,32 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
   const [borradores, setBorradores] = useState<Record<string, Valores>>({});
   const [expandidoManual, setExpandidoManual] = useState<string | null>(null);
   const [peticion, setPeticion] = useState<Peticion | null>(null);
+  const [descanso, setDescansoEstado] = useState<Descanso | null>(() =>
+    leerDescanso(sesionRealizada.id),
+  );
+  const [pantallaEncendida, setPantallaEncendida] = useState(false);
+  usePantallaEncendida(pantallaEncendida);
+
+  useEffect(() => {
+    void leerPantallaEncendida().then(setPantallaEncendida);
+  }, []);
+
+  const setDescanso = useCallback(
+    (nuevo: Descanso | null) => {
+      setDescansoEstado(nuevo);
+      guardarDescanso(sesionRealizada.id, nuevo);
+      if (nuevo) {
+        programarAviso({
+          finEn: nuevo.finEn,
+          titulo: 'Descanso terminado',
+          cuerpo: nuevo.siguiente ? `Siguiente: ${nuevo.siguiente}` : 'A por la siguiente serie.',
+        });
+      } else {
+        cancelarAviso();
+      }
+    },
+    [sesionRealizada.id],
+  );
 
   const recargar = useCallback(async () => {
     const nuevo = await cargarModeloSesion(bloque, sesion, sesionRealizada);
@@ -67,7 +163,9 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
   /** Recarga y deja abierto el ejercicio que toca tras anotar en `ejercicioId`. */
   const recargarDesde = async (ejercicioId: string) => {
     const nuevo = await recargar();
-    setExpandidoManual(siguienteFoco(nuevo, ejercicioId));
+    const foco = siguienteFoco(nuevo, ejercicioId);
+    setExpandidoManual(foco);
+    return { modelo: nuevo, foco };
   };
 
   useEffect(() => {
@@ -92,6 +190,8 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
     });
 
   const confirmar = async (ejercicio: Ejercicio, numeroSerie: number, valores: Valores) => {
+    // Dentro del toque: es lo que deja sonar el pitido al acabar el descanso.
+    prepararAudio();
     await registrarSerie({
       sesionRealizadaId: sesionRealizada.id,
       ejercicioId: ejercicio.id,
@@ -101,7 +201,44 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
       completada: true,
     });
     olvidarBorrador(ejercicio.id, numeroSerie);
-    await recargarDesde(ejercicio.id);
+    const { modelo: nuevo, foco } = await recargarDesde(ejercicio.id);
+
+    // Descanso con el tiempo del ejercicio que se acaba de hacer. Si ya no
+    // queda nada en la sesión, no hay nada que esperar.
+    const duracion = ejercicio.descansoSeg ?? 0;
+    if (duracion > 0 && foco !== null) {
+      setDescanso({
+        finEn: Date.now() + duracion * 1000,
+        duracion,
+        siguiente: textoSiguiente(nuevo, foco),
+      });
+    } else {
+      setDescanso(null);
+    }
+  };
+
+  const ajustarDescanso = (segundos: number) => {
+    if (!descanso) return;
+    const finEn = descanso.finEn + segundos * 1000;
+    if (finEn <= Date.now()) setDescanso(null);
+    else setDescanso({ ...descanso, finEn, duracion: Math.max(1, descanso.duracion + segundos) });
+  };
+
+  const descansoTerminado = () => {
+    if (!descanso) return;
+    // Si la app estaba en segundo plano ya avisó la notificación: al volver
+    // no se pita tarde.
+    if (Date.now() - descanso.finEn < TOLERANCIA_PITIDO_MS && document.visibilityState === 'visible') {
+      pitar();
+      vibrar();
+    } else {
+      notificarDesdeLaPagina(
+        'Descanso terminado',
+        descanso.siguiente ? `Siguiente: ${descanso.siguiente}` : 'A por la siguiente serie.',
+      );
+    }
+    setDescansoEstado(null);
+    guardarDescanso(sesionRealizada.id, null);
   };
 
   const anotarNoCompletada = async (peticionActual: Peticion, motivo: MotivoOmision) => {
@@ -130,13 +267,29 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
     await recargarDesde(peticionActual.ejercicio.id);
   };
 
+  const saltarGrupo = async (ejercicioId: string) => {
+    const estado = modelo.ejercicios.find((e) => e.ejercicio.id === ejercicioId);
+    const grupo = estado?.ejercicio.superserie;
+    if (!grupo) return;
+    const miembros = modelo.ejercicios.filter((e) => e.ejercicio.superserie === grupo);
+    await saltarSuperserie(
+      sesionRealizada.id,
+      miembros.map((e) => ({ ejercicio: e.ejercicio, total: e.total })),
+      'tiempo',
+    );
+    setDescanso(null);
+    const ultimo = miembros[miembros.length - 1].ejercicio.id;
+    await recargarDesde(ultimo);
+  };
+
   const terminar = async () => {
+    setDescanso(null);
     await terminarSesion(sesionRealizada);
     onTerminada();
   };
 
   return (
-    <main className="app">
+    <main className={`app${descanso ? ' con-descanso' : ''}`}>
       <header className="barra">
         <button type="button" className="boton-volver" onClick={onSalir} aria-label="Volver">
           ←
@@ -146,7 +299,10 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
             Sesión {sesion.letra} — {sesion.nombre}
           </h1>
           <p className="meta">
-            Rotación {modelo.rotacion} de {modelo.numeroRotaciones} · RIR {sesion.rirObjetivo}
+            {sesion.opcional
+              ? 'Sesión opcional · no cuenta para la rotación'
+              : `Rotación ${modelo.rotacion} de ${modelo.numeroRotaciones}`}
+            {sesion.rirObjetivo && ` · RIR ${sesion.rirObjetivo}`}
           </p>
         </div>
       </header>
@@ -155,6 +311,9 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
         <p className="banner banner-descarga">
           SEMANA DE DESCARGA: 2 series, sin acercarte al fallo
         </p>
+      )}
+      {modelo.tecnica && (
+        <p className="banner banner-tecnica">Sesión de técnica: no subas peso</p>
       )}
       {sesion.aviso && <p className="banner banner-aviso">{sesion.aviso}</p>}
 
@@ -193,6 +352,12 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
             setExpandidoManual(estado.ejercicio.id);
             await recargar();
           }}
+          onSaltarSuperserie={() => void saltarGrupo(estado.ejercicio.id)}
+          onConsolidar={async () => {
+            await alternarConsolidacion(estado.ejercicio.id);
+            setExpandidoManual(estado.ejercicio.id);
+            await recargar();
+          }}
         />
       ))}
 
@@ -209,6 +374,17 @@ export function PantallaSesion({ bloque, sesion, sesionRealizada, onTerminada, o
       >
         Terminar sesión
       </button>
+
+      {descanso && (
+        <TemporizadorDescanso
+          finEn={descanso.finEn}
+          duracion={descanso.duracion}
+          siguiente={descanso.siguiente}
+          onAjustar={ajustarDescanso}
+          onSaltar={() => setDescanso(null)}
+          onTerminado={descansoTerminado}
+        />
+      )}
 
       {peticion?.tipo === 'serie-no-completada' && (
         <SelectorMotivo

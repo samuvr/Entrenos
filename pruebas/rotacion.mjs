@@ -1,12 +1,14 @@
 /**
- * Rotación A→B→C→D→E, pantalla de inicio y salto manual de sesión
- * (reglas 3, 4 y 6 de la spec).
+ * Rotación A→B→C→D (la E es opcional y no la mueve), pantalla de inicio y
+ * salto manual de sesión (reglas 3, 4 y 6 de la spec).
  */
 import {
   abrirNavegador,
   cerrar,
   comprobar,
   contarFilas,
+  escribirFilas,
+  ponerDescarga,
   sembrarHistorial,
   URL_BASE,
 } from './navegador.mjs';
@@ -19,8 +21,8 @@ comprobar(
   'sin historial, toca la sesión A',
 );
 comprobar(
-  (await pagina.locator('.hoy-meta').first().innerText()).includes('Rotación 1 de 6 · sesión 1 de 30'),
-  'muestra rotación 1 de 6 y sesión 1 de 30',
+  (await pagina.locator('.hoy-meta').first().innerText()).includes('Rotación 1 de 6 · sesión 1 de 24'),
+  'muestra rotación 1 de 6 y sesión 1 de 24',
 );
 comprobar(
   (await pagina.locator('.hoy').innerText()).includes('Todavía no has hecho ninguna'),
@@ -29,7 +31,7 @@ comprobar(
 
 // El ciclo completo, y que vuelve a empezar por la A.
 const esperado = [
-  ['A', 'Push'], ['B', 'Pull'], ['C', 'Legs'], ['D', 'Upper'], ['E', 'Lower'], ['A', 'Push'],
+  ['A', 'Torso 1'], ['B', 'Pierna 1'], ['C', 'Torso 2'], ['D', 'Pierna 2'], ['A', 'Torso 1'],
 ];
 for (let n = 0; n < esperado.length; n += 1) {
   await sembrarHistorial(pagina, n);
@@ -42,16 +44,46 @@ for (let n = 0; n < esperado.length; n += 1) {
   );
 }
 
-// Progreso a mitad de bloque: tras A B C D E A B C D E A toca la B.
-await sembrarHistorial(pagina, 11);
+// La E es opcional: hacerla no mueve la que toca ni cuenta para el progreso.
+await sembrarHistorial(pagina, 2);
+await escribirFilas(pagina, 'sesionesRealizadas', [
+  {
+    id: 'opcional-1',
+    bloqueId: 'bloque-4',
+    sesionId: 'bloque-4-E',
+    rotacion: 1,
+    fecha: '2026-07-03',
+    iniciadaEn: '2026-07-03T06:30:00.000Z',
+    finalizadaEn: '2026-07-03T07:15:00.000Z',
+    duracionMin: 45,
+    notas: null,
+    finalizada: true,
+  },
+]);
+await pagina.reload({ waitUntil: 'networkidle' });
+comprobar(
+  (await pagina.locator('.hoy-titular').innerText()).includes('Sesión C'),
+  'tras A, B y la E opcional sigue tocando la C',
+);
+comprobar(
+  (await pagina.locator('.hoy-meta').first().innerText()).includes('sesión 3 de 24'),
+  'y la E no suma al progreso del bloque',
+);
+comprobar(
+  (await pagina.getByRole('button', { name: /^Día opcional: E/ }).count()) === 1,
+  'Inicio ofrece aparte el día opcional',
+);
+
+// Progreso a mitad de bloque: tras A B C D A B C D A toca la B.
+await sembrarHistorial(pagina, 9);
 await pagina.reload({ waitUntil: 'networkidle' });
 comprobar(
   (await pagina.locator('.hoy-titular').innerText()).includes('Sesión B'),
-  'tras 11 sesiones (…D E A) toca la B',
+  'tras 9 sesiones (…C D A) toca la B',
 );
 const meta = await pagina.locator('.hoy-meta').first().innerText();
 comprobar(
-  meta.includes('Rotación 3 de 6') && meta.includes('sesión 12 de 30'),
+  meta.includes('Rotación 3 de 6') && meta.includes('sesión 10 de 24'),
   `progreso correcto: "${meta}"`,
 );
 comprobar(
@@ -59,36 +91,63 @@ comprobar(
   'muestra la fecha de la última sesión',
 );
 
-// Regla 3: la rotación 6 es de descarga.
-await sembrarHistorial(pagina, 25);
+// Las 2 primeras veces de cada sesión son de técnica; la tercera ya no.
+await sembrarHistorial(pagina, 4);
+await pagina.reload({ waitUntil: 'networkidle' });
+comprobar(
+  (await pagina.locator('.banner-tecnica').count()) === 1,
+  'la segunda vez de la A todavía es de técnica',
+);
+await sembrarHistorial(pagina, 8);
+await pagina.reload({ waitUntil: 'networkidle' });
+comprobar(
+  (await pagina.locator('.banner-tecnica').count()) === 0,
+  'la tercera vez de la A ya no es de técnica',
+);
+
+// Regla 3: la rotación 6 sería de descarga, pero el bloque 4 va sin ella.
+await sembrarHistorial(pagina, 20);
 await pagina.reload({ waitUntil: 'networkidle' });
 comprobar(
   (await pagina.locator('.hoy-meta').first().innerText()).includes('Rotación 6 de 6'),
-  'tras 25 sesiones entra en la rotación 6',
+  'tras 20 sesiones entra en la rotación 6',
 );
 comprobar(
   (await pagina.locator('.banner-descarga').count()) === 0,
-  'el bloque 3 no tiene descarga: la rotación 6 no la avisa',
+  'el bloque 4 no tiene descarga: la rotación 6 no la avisa',
 );
-
-// El día ligero (sesión D) lleva su propio aviso.
-await sembrarHistorial(pagina, 3);
+await ponerDescarga(pagina, true);
 await pagina.reload({ waitUntil: 'networkidle' });
 comprobar(
-  (await pagina.locator('.banner-aviso').innerText()).includes('Día ligero'),
-  'avisa del día ligero en la sesión D',
+  (await pagina.locator('.banner-descarga').count()) === 1,
+  'con la descarga activada, la rotación 6 sí la avisa',
+);
+await ponerDescarga(pagina, false);
+
+// Las sesiones con aviso propio (A y C: qué saltar si vas justo) lo enseñan.
+await sembrarHistorial(pagina, 2);
+await pagina.reload({ waitUntil: 'networkidle' });
+comprobar(
+  (await pagina.locator('.banner-aviso').innerText()).includes('press francés'),
+  'la C avisa de qué superserie saltar si vas justo',
+);
+await sembrarHistorial(pagina, 1);
+await pagina.reload({ waitUntil: 'networkidle' });
+comprobar(
+  (await pagina.locator('.banner-aviso').count()) === 0,
+  'la B no lleva aviso',
 );
 
 // Regla 6: fin de bloque. Cerrarlo y exportar se prueban en exportar.mjs.
-await sembrarHistorial(pagina, 30);
+await sembrarHistorial(pagina, 24);
 await pagina.reload({ waitUntil: 'networkidle' });
 comprobar(
   (await pagina.locator('.tarjeta.destacada h2').innerText()).includes('Bloque completo'),
-  'avisa del fin de bloque a las 30 sesiones',
+  'avisa del fin de bloque a las 24 sesiones',
 );
 comprobar(
-  (await pagina.locator('.hoy-meta').first().innerText()).includes('sesión 30 de 30'),
-  'el contador no se pasa de 30',
+  (await pagina.locator('.hoy-meta').first().innerText()).includes('sesión 24 de 24'),
+  'el contador no se pasa de 24',
 );
 
 // Empezar la sesión que toca, con un toque.

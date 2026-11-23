@@ -45,17 +45,20 @@ el ciclo. Los datos ya se pueden sacar del móvil y volver a meter, la doble
 progresión se aplica y se avisa sola, y la app se instala en la pantalla de
 inicio del móvil y arranca en modo avión desde cero.
 
-No hay pantalla de Ajustes: el único ajuste de la spec es el rango de control
-del peso corporal, y está donde se usa, dentro de esa pantalla. Una pantalla
-más con un solo control era un salto de más para nada.
+El bloque en curso es el **Bloque 4** (desde el 24-11-2026). Ver «Bloque 4» más
+abajo para lo que cambió con él: temporizador de descanso, superseries, día
+opcional, sesiones de técnica, consolidación y la nueva regla de estancamiento.
 
 ## Estructura
 
 ```
 src/db/types.ts        Modelo de datos (punto 4 de la spec)
 src/db/db.ts           Esquema de Dexie e ids
-src/db/seed.ts         Datos del bloque 3 (punto 7 de la spec)
-src/db/inicializar.ts  Carga idempotente de la semilla
+src/db/seed.ts         Plan sembrado (SEED_VERSION) y de dónde sale
+src/db/planes/         Planes de bloque en formato entrenos-plan (bloque-4-plan.json)
+src/db/plan.ts         Validar y cargar un plan sin tocar el historial
+src/db/inicializar.ts  Carga idempotente de la semilla y reparación de duraciones
+src/db/consolidacion.ts  Tramos de «Consolidar técnica» por ejercicio
 src/db/consultas.ts    Lecturas de uso común
 src/db/registro.ts     Escrituras del entrenamiento (series, sesiones, saltos)
 src/db/incrementos.ts  Incrementos por tipo de carga
@@ -68,7 +71,7 @@ src/db/peso.ts         Pesadas y rango de control
 
 src/logica/modeloSesion.ts  Estado de la sesión en curso, reconstruido desde la base
 src/logica/precarga.ts      Valores que salen ya puestos en cada serie
-src/logica/rotacion.ts      Ciclo A→B→C→D→E, rotación, descarga y estado del bloque
+src/logica/rotacion.ts      Ciclo de sesiones, opcionales, técnica, descarga y estado del bloque
 src/logica/motivos.ts       Motivos rápidos de omisión
 src/logica/copia.ts         Cuándo recordar la copia de seguridad
 src/logica/progresion.ts    Doble progresión, aviso de subir y estancamiento
@@ -78,6 +81,10 @@ src/logica/pesoCorporal.ts  Semanas de peso y aviso de tres seguidas fuera
 src/ui/PantallaInicio.tsx   Qué sesión toca hoy y progreso del bloque
 src/ui/PantallaElegirSesion.tsx  Salto manual a otra sesión
 src/ui/PantallaSesion.tsx   Pantalla de sesión en curso
+src/ui/TemporizadorDescanso.tsx  Cuenta atrás del descanso entre series
+src/ui/descanso.ts          Pitido (Web Audio), vibración y notificación del descanso
+src/ui/pantallaEncendida.ts Wake Lock durante la sesión
+src/ui/PantallaAjustes.tsx  Notificaciones y pantalla encendida
 src/ui/TarjetaEjercicio.tsx Ejercicio expandido o colapsado, con sus series
 src/ui/ControlNumerico.tsx  Peso y reps con -/+, sin teclado
 src/ui/Cronometro.tsx       Cronómetro de las planchas
@@ -219,16 +226,48 @@ en el tope del rango y luego repetir el mismo peso. La app la cierra sola.
 - **En la rotación de descarga no se sube**, ni se progresa desde ella: repite
   el peso de la rotación 5 con menos series, así que llegar al tope ahí no
   cuenta como haberlo ganado.
-- Tres sesiones seguidas al mismo peso sin llegar al tope marcan el ejercicio
-  como **estancado**. Las descargas no cuentan para eso, que darían un
-  estancamiento falso. La vista de historial llega con el paso 6; de momento el
-  aviso sale en la propia tarjeta del ejercicio.
+- Un ejercicio está **estancado** si lleva tres sesiones seguidas con el mismo
+  peso **sin aumentar las repeticiones totales** (la suma de las series
+  limpias): pasar de 30 a 32 reps totales ya es progresar. No cuentan las
+  descargas, los días en que se saltó el ejercicio o alguna serie por falta de
+  tiempo o molestia, ni los días en consolidación.
+
+## Bloque 4
+
+- **Día opcional (E, cardio + core)**: se empieza desde Inicio cuando se
+  consigue un 5.º día. No cuenta para las rotaciones ni mueve la sesión que
+  toca: el bloque son 4 × 6 = 24 sesiones.
+- **Sesiones de técnica**: las 2 primeras veces de cada sesión
+  (`sesionesTecnicaInicio`) avisan «Sesión de técnica: no subas peso» y no
+  proponen subir carga.
+- **Temporizador de descanso**: al confirmar una serie arranca la cuenta atrás
+  con el `descansoSeg` del ejercicio (−15 s, +15 s, saltar). Se calcula sobre la
+  hora de fin, así que es correcto aunque se bloquee el móvil, y sobrevive a una
+  recarga. Al acabar pita (Web Audio) y vibra. Con la app en segundo plano avisa
+  una notificación lanzada por el service worker: hay que activarla en
+  **Ajustes** y, en Android, tener la app instalada en la pantalla de inicio.
+  En Ajustes también se puede mantener la pantalla encendida (Wake Lock).
+- **Superseries**: los ejercicios con el mismo `superserie` se alternan solos
+  (A1 → A2 → A1…), cada uno con su descanso. «Saltar la superserie (falta de
+  tiempo)» deja sus series omitidas con motivo «Falta de tiempo», que no cuenta
+  para el estancamiento. Las sesiones de torso avisan al empezar qué superserie
+  saltar si se empieza a las 6:45.
+- **Consolidar técnica**: botón por ejercicio. Mientras está activo sale «en
+  consolidación», no se propone subir y el contador de estancamiento se congela.
+  Se desactiva a mano.
+- **Duraciones**: al terminar, la duración va del inicio a la última serie más
+  5 minutos. Al arrancar, la app recalcula así las sesiones de más de 3 horas
+  que quedaron abiertas (las del bloque 3).
 
 ## Cómo se cambia de bloque
 
-Los bloques nuevos no se crean desde la interfaz: se editan los datos de
-`src/db/seed.ts` y se sube `SEED_VERSION`. Al abrir la app, la semilla nueva
-se aplica sobre las tablas de plantilla sin tocar el historial ya registrado.
+Dos formas, y ninguna toca el historial:
+
+- **Desde la app**: «Copia de seguridad y exportar» → «Cargar plan de bloque»,
+  con un fichero `entrenos-plan` (como `src/db/planes/bloque-4-plan.json`).
+  Añade el bloque y cierra el que estaba activo el día antes de que empiece.
+- **En el código**: se deja el plan en `src/db/planes/`, se apunta en
+  `src/db/seed.ts` y se sube `SEED_VERSION`. Al abrir la app se aplica igual.
 
 ## Copias de seguridad
 
@@ -248,6 +287,6 @@ sin haberla guardado, y el botón está a la vista, no escondido en ajustes.
   plancha de 45 segundos parecería 45 repeticiones y una serie saltada
   parecería una serie hecha con 0 kg.
 
-Al llegar a las 30 sesiones, Inicio ofrece exportar el CSV y cerrar el bloque
+Al completar todas las sesiones del bloque (24 en el bloque 4), Inicio ofrece exportar el CSV y cerrar el bloque
 (regla 6). Cerrar solo pone la fecha de fin y lo marca inactivo; no borra nada
 y se puede reabrir.

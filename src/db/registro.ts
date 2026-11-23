@@ -128,6 +128,21 @@ export async function saltarEjercicio(
   await db.seriesRealizadas.bulkPut(pendientes);
 }
 
+/**
+ * Salta una superserie entera (los ejercicios que se alternan), normalmente
+ * por falta de tiempo. Cada ejercicio queda con sus series pendientes
+ * anotadas como omitidas, igual que al saltar uno solo.
+ */
+export async function saltarSuperserie(
+  sesionRealizadaId: string,
+  ejercicios: { ejercicio: Ejercicio; total: number }[],
+  motivo: MotivoOmision = 'tiempo',
+): Promise<void> {
+  for (const { ejercicio, total } of ejercicios) {
+    await saltarEjercicio(sesionRealizadaId, ejercicio, total, motivo);
+  }
+}
+
 /** Reabre un ejercicio saltado borrando las series vacías que lo marcaban. */
 export async function deshacerSaltoEjercicio(
   sesionRealizadaId: string,
@@ -141,19 +156,48 @@ export async function deshacerSaltoEjercicio(
   await db.seriesRealizadas.bulkDelete(vacias.map((s) => s.id));
 }
 
+/** Una sesión que pase de esto se quedó abierta: no hay entreno de 3 horas. */
+export const LIMITE_SESION_MIN = 180;
+
+/** Margen tras la última serie: el último descanso y recoger. */
+const MARGEN_FIN_MIN = 5;
+
+/**
+ * Duración de una sesión en minutos: del inicio a la última serie registrada
+ * más un margen, sin pasar de `fin`. Así, cerrar la sesión horas después (o al
+ * día siguiente) no deja duraciones imposibles.
+ *
+ * Sin series no hay con qué acotarla: si pasa de 3 horas se deja en blanco.
+ */
+export function duracionRealMin(
+  iniciadaEn: string,
+  series: Pick<SerieRealizada, 'registradaEn'>[],
+  fin: Date,
+): number | null {
+  const inicio = Date.parse(iniciadaEn);
+  let final = fin.getTime();
+  if (series.length > 0) {
+    const ultima = Math.max(...series.map((s) => Date.parse(s.registradaEn)));
+    final = Math.min(final, ultima + MARGEN_FIN_MIN * 60_000);
+  }
+  const minutos = Math.max(1, Math.round((final - inicio) / 60_000));
+  if (series.length === 0 && minutos > LIMITE_SESION_MIN) return null;
+  return minutos;
+}
+
 export async function terminarSesion(
   sesionRealizada: SesionRealizada,
   notas: string | null = null,
 ): Promise<SesionRealizada> {
   const fin = new Date();
-  const duracionMin = Math.max(
-    1,
-    Math.round((fin.getTime() - Date.parse(sesionRealizada.iniciadaEn)) / 60_000),
-  );
+  const series = await db.seriesRealizadas
+    .where('sesionRealizadaId')
+    .equals(sesionRealizada.id)
+    .toArray();
   const finalizada: SesionRealizada = {
     ...sesionRealizada,
     finalizadaEn: fin.toISOString(),
-    duracionMin,
+    duracionMin: duracionRealMin(sesionRealizada.iniciadaEn, series, fin),
     notas,
     finalizada: true,
   };
@@ -172,6 +216,8 @@ export async function descartarSesion(sesionRealizadaId: string): Promise<void> 
 export interface VezAnterior {
   sesionRealizadaId: string;
   fecha: string;
+  /** Instante de inicio de aquella sesión, ISO completo. */
+  iniciadaEn: string;
   /** Rotación de aquella sesión: la 6 es descarga y no cuenta para progresar. */
   rotacion: number;
   /** Series de ese día, ordenadas. */
@@ -180,13 +226,14 @@ export interface VezAnterior {
 
 /**
  * Las últimas veces que se hizo cada ejercicio, de la más reciente a la más
- * antigua. Con una basta para precargar valores; hacen falta tres para detectar
- * un ejercicio estancado. Ignora la sesión en curso y las que no se cerraron.
+ * antigua. Con una basta para precargar valores; para el estancamiento hacen
+ * falta tres útiles, y las descargas, los saltos y la consolidación no cuentan.
+ * Ignora la sesión en curso y las que no se cerraron.
  */
 export async function obtenerHistorialPorEjercicio(
   ejercicioIds: string[],
   excluirSesionRealizadaId: string,
-  cuantas = 3,
+  cuantas = 12,
 ): Promise<Map<string, VezAnterior[]>> {
   const [series, sesiones] = await Promise.all([
     db.seriesRealizadas.where('ejercicioId').anyOf(ejercicioIds).toArray(),
@@ -215,6 +262,7 @@ export async function obtenerHistorialPorEjercicio(
       veces.push({
         sesionRealizadaId,
         fecha: sesion.fecha,
+        iniciadaEn: sesion.iniciadaEn,
         rotacion: sesion.rotacion,
         series: propias.sort((a, b) => a.numeroSerie - b.numeroSerie),
       });

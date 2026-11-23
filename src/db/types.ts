@@ -38,6 +38,11 @@ export interface Bloque {
   fechaInicio: string;
   fechaFin: string | null;
   activo: boolean;
+  /**
+   * Las primeras N veces que se hace cada sesión del bloque son de técnica: se
+   * avisa de no subir peso y no se propone subir carga. Sin el campo, 0.
+   */
+  sesionesTecnicaInicio?: number;
 }
 
 export interface Sesion {
@@ -45,12 +50,17 @@ export interface Sesion {
   bloqueId: string;
   letra: LetraSesion;
   nombre: string;
-  /** RIR objetivo tal cual se muestra: "1-2" o "3-4". */
-  rirObjetivo: string;
+  /** RIR objetivo tal cual se muestra: "1-2" o "3-4". Null en el día de cardio. */
+  rirObjetivo: string | null;
   notaCardio: string | null;
   /** Aviso destacado de la sesión (p. ej. el día ligero). */
   aviso: string | null;
   orden: number;
+  /**
+   * Sesión que se hace cuando se puede: no cuenta para completar rotaciones ni
+   * mueve la siguiente sesión del ciclo. Sin el campo, no es opcional.
+   */
+  opcional?: boolean;
 }
 
 export interface Ejercicio {
@@ -74,6 +84,10 @@ export interface Ejercicio {
   notaTecnica: string | null;
   /** Matiz del rango de reps: "por brazo", "por pierna", "por lado". */
   notaReps: string | null;
+  /** Segundos de descanso tras cada serie. Sin el campo, no hay temporizador. */
+  descansoSeg?: number;
+  /** Los ejercicios con el mismo valor se alternan: A1 → A2 → A1… */
+  superserie?: string | null;
 }
 
 export interface SesionRealizada {
@@ -135,3 +149,17 @@ export interface RegistroCopia {
   /** Sesiones terminadas que había en ese momento. */
   sesionesCompletadas: number;
 }
+
+/**
+ * Tramo en el que un ejercicio estuvo "consolidando técnica": no se propone
+ * subir peso y las sesiones de ese tramo no cuentan para el estancamiento.
+ */
+export interface PeriodoConsolidacion {
+  /** Instante ISO en que se activó. */
+  desde: string;
+  /** Instante ISO en que se desactivó; null mientras sigue activa. */
+  hasta: string | null;
+}
+
+/** Consolidación por ejercicio: id del ejercicio → sus tramos, en orden. */
+export type ConsolidacionPorEjercicio = Record<string, PeriodoConsolidacion[]>;

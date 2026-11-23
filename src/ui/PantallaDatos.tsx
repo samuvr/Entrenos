@@ -12,6 +12,7 @@ import {
   type ResumenCopia,
 } from '../db/exportar';
 import { guardarUltimaCopia } from '../db/ajustes';
+import { aplicarPlan, leerPlan, type PlanEntrenos } from '../db/plan';
 import { fechaISO, fechaLarga } from '../db/fechas';
 import type { Bloque } from '../db/types';
 import type { EstadoCopia } from '../logica/copia';
@@ -48,6 +49,38 @@ export function PantallaDatos({
     null,
   );
   const entradaFichero = useRef<HTMLInputElement>(null);
+  const entradaPlan = useRef<HTMLInputElement>(null);
+  const [planPendiente, setPlanPendiente] = useState<PlanEntrenos | null>(null);
+
+  const elegirPlan = async (fichero: File) => {
+    setMensaje(null);
+    setError(null);
+    try {
+      let crudo: unknown;
+      try {
+        crudo = JSON.parse(await fichero.text());
+      } catch {
+        throw new Error('El fichero no es un JSON válido.');
+      }
+      setPlanPendiente(leerPlan(crudo));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const cargarPlan = async () => {
+    if (!planPendiente) return;
+    try {
+      await aplicarPlan(planPendiente);
+      const nombres = planPendiente.datos.bloques.map((b) => b.nombre).join(', ');
+      setPlanPendiente(null);
+      await onCambio();
+      setMensaje(`Plan cargado: ${nombres}. El historial sigue intacto.`);
+    } catch (e) {
+      setPlanPendiente(null);
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   const guardarJSON = async () => {
     setError(null);
@@ -180,6 +213,62 @@ export function PantallaDatos({
           Elegir fichero JSON
         </button>
       </section>
+
+      <section className="tarjeta">
+        <h2>Cargar plan de bloque</h2>
+        <p className="nota">
+          Carga un plan nuevo (fichero <code>entrenos-plan</code>): añade el bloque y cierra el que
+          está en curso. No borra ninguna sesión, serie ni peso corporal.
+        </p>
+        <input
+          ref={entradaPlan}
+          type="file"
+          accept="application/json,.json"
+          className="entrada-fichero"
+          onChange={(e) => {
+            const fichero = e.target.files?.[0];
+            e.target.value = '';
+            if (fichero) void elegirPlan(fichero);
+          }}
+        />
+        <button
+          type="button"
+          className="boton boton-plano"
+          onClick={() => entradaPlan.current?.click()}
+        >
+          Elegir plan JSON
+        </button>
+      </section>
+
+      {planPendiente && (
+        <Modal
+          titulo="Cargar el plan"
+          aviso={
+            haySesionEnCurso
+              ? 'Tienes una sesión a medias: termínala antes o se cerrará tal como esté.'
+              : `${bloque.nombre} quedará cerrado si el plan trae un bloque nuevo activo.`
+          }
+          onCerrar={() => setPlanPendiente(null)}
+        >
+          <ul className="ejercicios">
+            {planPendiente.datos.bloques.map((b) => (
+              <li key={b.id}>
+                <span className="nombre">{b.nombre}</span>
+                <span className="objetivo">desde el {fechaLarga(b.fechaInicio)}</span>
+              </li>
+            ))}
+            <li>
+              <span className="nombre">{planPendiente.datos.sesiones.length} sesiones</span>
+              <span className="objetivo">{planPendiente.datos.ejercicios.length} ejercicios</span>
+            </li>
+          </ul>
+          <div className="modal-opciones">
+            <button type="button" className="boton boton-principal" onClick={() => void cargarPlan()}>
+              Cargar el plan
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {pendiente && (
         <Modal

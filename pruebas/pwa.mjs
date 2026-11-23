@@ -70,7 +70,7 @@ comprobar(
 );
 
 const guardados = await pagina.evaluate(async () => {
-  const cache = await caches.open('entrenos-v1');
+  const cache = await caches.open('entrenos-v2');
   return (await cache.keys()).map((p) => new URL(p.url).pathname);
 });
 comprobar(

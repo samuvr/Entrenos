@@ -15,8 +15,10 @@ import {
 const { navegador, pagina, errores } = await abrirNavegador();
 await pagina.goto(URL_BASE, { waitUntil: 'networkidle' });
 
-const PRESS = 'bloque-3-A-1';
-const CORE_A = 'bloque-3-A-2';
+const PRESS = 'bloque-4-A-1';
+const CURL_SCOTT = 'bloque-4-A-7';
+const CRUNCH = 'bloque-4-B-6';
+const PLANCHA_E = 'bloque-4-E-1';
 
 function serie(sesion, ejercicioId, numeroSerie, peso, reps, completada = true) {
   return {
@@ -33,18 +35,36 @@ function serie(sesion, ejercicioId, numeroSerie, peso, reps, completada = true) 
 }
 
 function pressBanca(sesion, peso, reps) {
-  return [1, 2, 3, 4].map((n) => serie(sesion, PRESS, n, peso, reps));
+  return [1, 2, 3].map((n) => serie(sesion, PRESS, n, peso, reps));
 }
 
-// Tres rotaciones hechas. El press banca sube de 35 a 40; el core se hizo en la
-// primera A y se saltó en la tercera.
-await sembrarHistorial(pagina, 11);
+// Dos rotaciones y la A de la tercera (A B C D A B C D A), más una E opcional
+// por medio. El press banca sube de 40 a 45; el core (crunch de la B) se hizo
+// en la primera B y se saltó en la segunda, y la plancha de la E se hizo. En
+// la última A se saltó el curl Scott por falta de tiempo.
+await sembrarHistorial(pagina, 9);
+await escribirFilas(pagina, 'sesionesRealizadas', [
+  {
+    id: 'opcional-1',
+    bloqueId: 'bloque-4',
+    sesionId: 'bloque-4-E',
+    rotacion: 1,
+    fecha: '2026-07-05',
+    iniciadaEn: '2026-07-05T18:00:00.000Z',
+    finalizadaEn: '2026-07-05T18:45:00.000Z',
+    duracionMin: 45,
+    notas: null,
+    finalizada: true,
+  },
+]);
 await escribirFilas(pagina, 'seriesRealizadas', [
-  ...pressBanca('h-0', 35, 10),
-  ...pressBanca('h-5', 37.5, 9),
-  ...pressBanca('h-10', 40, 8),
-  ...[1, 2, 3].map((n) => serie('h-0', CORE_A, n, 0, 45)),
-  ...[1, 2, 3].map((n) => serie('h-10', CORE_A, n, 0, 0, false)),
+  ...pressBanca('h-0', 40, 10),
+  ...pressBanca('h-4', 42.5, 9),
+  ...pressBanca('h-8', 45, 8),
+  ...[1, 2, 3].map((n) => serie('h-8', CURL_SCOTT, n, 0, 0, false)),
+  ...[1, 2, 3].map((n) => serie('h-1', CRUNCH, n, 27.5, 15)),
+  ...[1, 2, 3].map((n) => serie('h-5', CRUNCH, n, 0, 0, false)),
+  ...[1, 2, 3].map((n) => serie('opcional-1', PLANCHA_E, n, 0, 30)),
 ]);
 await pagina.reload({ waitUntil: 'networkidle' });
 
@@ -54,17 +74,24 @@ await pagina.waitForSelector('.barra h1');
 // ---------- Adherencia ----------
 
 const adherencia = await pagina.locator('.tarjeta').first().innerText();
-comprobar(adherencia.includes('11 de 30 sesiones'), 'cuenta las sesiones hechas');
-// De las 11 sesiones, 7 llevaban core (las A, C y E). Solo en una se hizo.
 comprobar(
-  adherencia.includes('Core: 1 de 7 veces que tocaba'),
+  adherencia.includes('9 de 24 sesiones'),
+  'cuenta las sesiones hechas del ciclo (la E opcional no suma)',
+);
+// De los 10 días, 5 llevaban core (las B, las D y la E). Se hizo en la
+// primera B y en la E.
+comprobar(
+  adherencia.includes('Core: 2 de 5 veces que tocaba'),
   `y el core aparte, contando solo las sesiones que lo llevan: ${adherencia.replace(/\n/g, ' · ')}`,
 );
 
 // ---------- Por sesión ----------
 
 const dias = pagina.locator('.tarjeta.ejercicio');
-comprobar((await dias.count()) === 11, `lista los 11 días (${await dias.count()})`);
+comprobar(
+  (await dias.count()) === 10,
+  `lista los 10 días, la E opcional incluida (${await dias.count()})`,
+);
 
 const primero = await dias.first().innerText();
 comprobar(primero.includes('rotación 3'), `el más reciente va primero: ${primero.split('\n')[1]}`);
@@ -72,7 +99,7 @@ comprobar(primero.includes('rotación 3'), `el más reciente va primero: ${prime
 await dias.first().locator('.cabecera-ejercicio').click();
 await pagina.waitForSelector('.tarjeta.ejercicio.abierto .ejercicios');
 const detalle = await pagina.locator('.tarjeta.ejercicio.abierto').innerText();
-comprobar(detalle.includes('40x8'), `enseña las series de ese día: ${detalle.includes('40x8')}`);
+comprobar(detalle.includes('45x8'), `enseña las series de ese día: ${detalle.includes('45x8')}`);
 comprobar(
   detalle.includes('saltado') && detalle.includes('Falta de tiempo'),
   'y el ejercicio saltado con su motivo',
@@ -83,13 +110,13 @@ comprobar(
 await pagina.getByRole('tab', { name: 'Por ejercicio' }).click();
 await pagina.waitForSelector('.tarjeta.ejercicio');
 comprobar(
-  (await pagina.locator('.tarjeta.ejercicio').count()) === 26,
-  'la vista por ejercicio lista los 26 del bloque',
+  (await pagina.locator('.tarjeta.ejercicio').count()) === 30,
+  'la vista por ejercicio lista los 30 del bloque',
 );
 
 const tarjetaPress = pagina.locator('.tarjeta.ejercicio').first();
 comprobar(
-  (await tarjetaPress.innerText()).includes('40 kg'),
+  (await tarjetaPress.innerText()).includes('45 kg'),
   'cada ejercicio enseña su último peso',
 );
 
@@ -104,7 +131,7 @@ comprobar(
 const abiertaPress = pagina.locator('.tarjeta.ejercicio.abierto').first();
 const tabla = await abiertaPress.locator('.ejercicios').innerText();
 comprobar(
-  tabla.includes('35x10') && tabla.includes('40x8'),
+  tabla.includes('40x10') && tabla.includes('45x8'),
   'y debajo la tabla con las series de cada sesión',
 );
 comprobar(
@@ -113,14 +140,14 @@ comprobar(
 );
 // innerText no vale en SVG: <text> no es un HTMLElement.
 const tope = await pagina.locator('.grafica-escala').first().textContent();
-comprobar(tope === '41 kg', `el eje va en números redondos: ${tope}`);
+comprobar(tope === '46 kg', `el eje va en números redondos: ${tope}`);
 
 // Un ejercicio sin hacer no inventa una gráfica a cero.
-await pagina.getByRole('button', { name: /Jalón al pecho/ }).first().click();
+await pagina.getByRole('button', { name: /T-Bar row/ }).first().click();
 await pagina.waitForTimeout(200);
 const sinHacer = await pagina
   .locator('.tarjeta.ejercicio.abierto')
-  .filter({ hasText: 'Jalón al pecho' })
+  .filter({ hasText: 'T-Bar row' })
   .innerText();
 comprobar(sinHacer.includes('Todavía no has hecho este ejercicio'), 'un ejercicio sin hacer lo dice');
 
@@ -128,9 +155,9 @@ comprobar(sinHacer.includes('Todavía no has hecho este ejercicio'), 'un ejercic
 
 await vaciarTabla(pagina, 'seriesRealizadas');
 await escribirFilas(pagina, 'seriesRealizadas', [
-  ...pressBanca('h-0', 35, 9),
-  ...pressBanca('h-5', 35, 9),
-  ...pressBanca('h-10', 35, 9),
+  ...pressBanca('h-0', 40, 9),
+  ...pressBanca('h-4', 40, 9),
+  ...pressBanca('h-8', 40, 9),
 ]);
 await pagina.reload({ waitUntil: 'networkidle' });
 await pagina.getByRole('button', { name: 'Historial' }).click();

@@ -34,7 +34,9 @@ export function PantallaElegirSesion({
         </button>
         <div>
           <h1>Elegir otra sesión</h1>
-          <p className="meta">Se sigue el ciclo A→B→C→D→E desde la que hagas.</p>
+          <p className="meta">
+            Se sigue el ciclo desde la que hagas. Las opcionales no lo mueven.
+          </p>
         </div>
       </header>
 
@@ -51,8 +53,11 @@ export function PantallaElegirSesion({
               <h2>{sesion.nombre}</h2>
             </div>
             <p className="meta">
-              Rotación {rotacion} de {bloque.numeroRotaciones} · RIR {sesion.rirObjetivo}
-              {descarga && ' · descarga'}
+              {sesion.opcional
+                ? 'Opcional · no cuenta para la rotación'
+                : `Rotación ${rotacion} de ${bloque.numeroRotaciones}`}
+              {sesion.rirObjetivo && ` · RIR ${sesion.rirObjetivo}`}
+              {descarga && !sesion.opcional && ' · descarga'}
               {esLaQueToca && ' · es la que toca'}
             </p>
 
