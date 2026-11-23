@@ -3,11 +3,19 @@ import {
   obtenerSesionesDeBloque,
   obtenerSesionesRealizadas,
 } from '../db/consultas';
+import { leerConsolidacion } from '../db/consolidacion';
 import { db } from '../db/db';
 import type { VezAnterior } from '../db/registro';
-import type { Bloque, Ejercicio, SerieRealizada, Sesion, SesionRealizada } from '../db/types';
+import type {
+  Bloque,
+  Ejercicio,
+  PeriodoConsolidacion,
+  SerieRealizada,
+  Sesion,
+  SesionRealizada,
+} from '../db/types';
 import { cumplioObjetivo, estaEstancado, valorDeTrabajo } from './progresion';
-import { rotacionDeDescarga } from './rotacion';
+import { rotacionDeDescarga, sesionesDelCiclo } from './rotacion';
 
 /**
  * Historial del bloque (punto 5.4 de la spec), en dos cortes: qué se hizo cada
@@ -35,6 +43,7 @@ export interface DiaDelHistorial {
 export interface PuntoEjercicio {
   sesionRealizadaId: string;
   fecha: string;
+  iniciadaEn: string;
   rotacion: number;
   /** Peso de trabajo del día, o segundos en los ejercicios corporales. */
   valor: number;
@@ -55,7 +64,7 @@ export interface Adherencia {
   total: number;
   /** Sesiones hechas en las que se completó alguna serie de core. */
   coreHechas: number;
-  /** Sesiones hechas cuya plantilla llevaba core. Solo la A, la C y la E. */
+  /** Sesiones hechas cuya plantilla llevaba core. */
   coreOportunidades: number;
 }
 
@@ -66,10 +75,11 @@ export interface Historial {
 }
 
 export async function cargarHistorial(bloque: Bloque): Promise<Historial> {
-  const [sesiones, ejerciciosPorSesion, realizadas] = await Promise.all([
+  const [sesiones, ejerciciosPorSesion, realizadas, consolidacion] = await Promise.all([
     obtenerSesionesDeBloque(bloque.id),
     obtenerEjerciciosPorSesion(bloque.id),
     obtenerSesionesRealizadas(bloque.id),
+    leerConsolidacion(),
   ]);
 
   const sesionPorId = new Map(sesiones.map((s) => [s.id, s]));
@@ -90,7 +100,14 @@ export async function cargarHistorial(bloque: Bloque): Promise<Historial> {
   return {
     dias,
     ejercicios: ejerciciosOrdenados.map((ejercicio) =>
-      construirEjercicio(ejercicio, sesionDeEjercicio.get(ejercicio.id), realizadas, series, bloque),
+      construirEjercicio(
+        ejercicio,
+        sesionDeEjercicio.get(ejercicio.id),
+        realizadas,
+        series,
+        bloque,
+        consolidacion[ejercicio.id],
+      ),
     ),
     adherencia: calcularAdherencia(bloque, sesiones, ejerciciosPorSesion, dias),
   };
@@ -143,6 +160,7 @@ function construirEjercicio(
   realizadas: SesionRealizada[],
   series: SerieRealizada[],
   bloque: Bloque,
+  consolidacion: PeriodoConsolidacion[] | undefined,
 ): HistorialEjercicio {
   const suyas = series.filter((s) => s.ejercicioId === ejercicio.id);
 
@@ -159,6 +177,7 @@ function construirEjercicio(
     puntos.push({
       sesionRealizadaId: realizada.id,
       fecha: realizada.fecha,
+      iniciadaEn: realizada.iniciadaEn,
       rotacion: realizada.rotacion,
       valor,
       series: deEseDia,
@@ -166,19 +185,23 @@ function construirEjercicio(
     });
   }
 
-  // `estaEstancado` mira las tres últimas veces, de la más reciente hacia atrás.
+  // `estaEstancado` mira las últimas veces, de la más reciente hacia atrás.
   const comoVeces: VezAnterior[] = [...puntos].reverse().map((p) => ({
     sesionRealizadaId: p.sesionRealizadaId,
     fecha: p.fecha,
+    iniciadaEn: p.iniciadaEn,
     rotacion: p.rotacion,
     series: p.series,
   }));
+  const consolidando = (consolidacion ?? []).some((p) => p.hasta === null);
 
   return {
     ejercicio,
     sesion,
     puntos,
-    estancado: estaEstancado(ejercicio, comoVeces, rotacionDeDescarga(bloque)),
+    estancado:
+      !consolidando &&
+      estaEstancado(ejercicio, comoVeces, rotacionDeDescarga(bloque), consolidacion),
   };
 }
 
@@ -194,6 +217,8 @@ function calcularAdherencia(
       .map((s) => s.id),
   );
 
+  const ciclo = sesionesDelCiclo(sesiones);
+  const idsCiclo = new Set(ciclo.map((s) => s.id));
   let coreHechas = 0;
   let coreOportunidades = 0;
   for (const dia of dias) {
@@ -203,8 +228,9 @@ function calcularAdherencia(
   }
 
   return {
-    completadas: dias.length,
-    total: sesiones.length * bloque.numeroRotaciones,
+    // Las sesiones opcionales no cuentan para completar el bloque.
+    completadas: dias.filter((d) => idsCiclo.has(d.realizada.sesionId)).length,
+    total: ciclo.length * bloque.numeroRotaciones,
     coreHechas,
     coreOportunidades,
   };

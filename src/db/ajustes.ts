@@ -28,3 +28,10 @@ export function leerUltimaCopia(): Promise<RegistroCopia | null> {
 export function guardarUltimaCopia(registro: RegistroCopia): Promise<void> {
   return guardarAjuste(CLAVE_ULTIMA_COPIA, registro);
 }
+
+/** Mantener la pantalla encendida durante la sesión (Wake Lock). */
+export const CLAVE_PANTALLA_ENCENDIDA = 'pantallaEncendida';
+
+export function leerPantallaEncendida(): Promise<boolean> {
+  return leerAjuste<boolean>(CLAVE_PANTALLA_ENCENDIDA, false);
+}

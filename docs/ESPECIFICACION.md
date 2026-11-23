@@ -105,7 +105,7 @@ La app debe cerrar ese agujero:
 - **Al terminar un ejercicio**: si todas las series se completaron en el **tope del rango** de repeticiones, mostrar un aviso claro: **"Objetivo cumplido. La próxima vez: 37,5 kg"**.
 - **Al empezar ese ejercicio la siguiente vez**: el peso precargado ya es el nuevo, y aparece la etiqueta **"SUBE HOY"** hasta que se registre la primera serie.
 - Si el usuario decide no subir, debe poder bajarlo, pero el aviso vuelve a aparecer la vez siguiente.
-- Al contrario: si un ejercicio lleva **3 sesiones sin cambiar de peso y sin llegar al tope del rango**, marcarlo como "estancado" en el historial.
+- Al contrario: si un ejercicio lleva **3 sesiones sin cambiar de peso y sin llegar al tope del rango**, marcarlo como "estancado" en el historial. *(Cambiado en el bloque 4: ahora es "sin aumentar las repeticiones totales"; ver `docs/CAMBIOS-BLOQUE-4.md`.)*
 
 ### 5.4 Historial
 - Vista por ejercicio: gráfica simple de peso a lo largo de las rotaciones y tabla con las series de cada sesión.
@@ -248,8 +248,8 @@ Cardio final: 30-35 min al terminar (caminata inclinada 15 %, ~4,8 km/h, o el ap
 - Sincronización en la nube o backend.
 - Registro de nutrición o calorías.
 - Vídeos o imágenes de ejercicios.
-- Cronómetro de descanso entre series (deseable en una fase 2, no ahora).
-- Creación de bloques nuevos desde la interfaz. El bloque 3 va como semilla; el bloque 4 se cargará editando los datos de semilla.
+- ~~Cronómetro de descanso entre series~~ (hecho con el bloque 4, ver `docs/CAMBIOS-BLOQUE-4.md`).
+- Creación de bloques nuevos desde la interfaz. Los bloques se cargan como plan (`entrenos-plan`), sembrado en el código o desde la pantalla de copia de seguridad.
 
 ## 10. Criterios de aceptación
 

@@ -14,7 +14,7 @@
  * Subir CACHE de versión tira todo lo guardado y vuelve a empezar. Es lo único
  * que hay que tocar aquí.
  */
-const CACHE = 'entrenos-v1';
+const CACHE = 'entrenos-v2';
 
 const BASICOS = ['./', './manifest.webmanifest', './icono-192.png', './icono-512.png'];
 
@@ -75,3 +75,73 @@ function guardar(peticion, respuesta) {
   if (!respuesta.ok || respuesta.type === 'opaque') return;
   void caches.open(CACHE).then((cache) => cache.put(peticion, respuesta));
 }
+
+/*
+ * Aviso del fin del descanso.
+ *
+ * Con el móvil bloqueado o la app en segundo plano los temporizadores de la
+ * página se paran, así que la página le pasa aquí la hora de fin y es el
+ * service worker el que lanza la notificación. `waitUntil` lo mantiene vivo
+ * mientras dura el descanso (Chrome lo permite hasta unos minutos, de sobra
+ * para un descanso). Si la app está a la vista no notifica: ya pita la página.
+ */
+let descansoPendiente = null;
+
+function cancelarDescanso() {
+  if (!descansoPendiente) return;
+  clearTimeout(descansoPendiente.id);
+  descansoPendiente.resolver();
+  descansoPendiente = null;
+}
+
+async function avisarDescanso(datos) {
+  const clientes = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  if (clientes.some((c) => c.visibilityState === 'visible')) return;
+  try {
+    await self.registration.showNotification(datos.titulo || 'Descanso terminado', {
+      body: datos.cuerpo || '',
+      tag: 'descanso',
+      renotify: true,
+      requireInteraction: false,
+      vibrate: [300, 150, 300],
+      icon: './icono-192.png',
+      badge: './icono-192.png',
+    });
+  } catch {
+    // Sin permiso de notificaciones no hay nada que hacer.
+  }
+}
+
+self.addEventListener('message', (evento) => {
+  const datos = evento.data;
+  if (!datos || typeof datos !== 'object') return;
+
+  if (datos.tipo === 'cancelar-descanso') {
+    cancelarDescanso();
+    return;
+  }
+  if (datos.tipo !== 'programar-descanso' || typeof datos.finEn !== 'number') return;
+
+  cancelarDescanso();
+  const espera = Math.max(0, datos.finEn - Date.now());
+  evento.waitUntil(
+    new Promise((resolver) => {
+      const id = setTimeout(() => {
+        descansoPendiente = null;
+        void avisarDescanso(datos).finally(resolver);
+      }, espera);
+      descansoPendiente = { id, resolver };
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  evento.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) => {
+      const abierto = clientes[0];
+      if (abierto) return abierto.focus();
+      return self.clients.openWindow('./');
+    }),
+  );
+});
