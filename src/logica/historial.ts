@@ -121,7 +121,7 @@ function construirDia(
 ): DiaDelHistorial {
   const suyas = porDia.get(realizada.id) ?? [];
   // La plantilla de la sesión, más los ejercicios que ese día se hicieron en
-  // ella pero que luego se movieron a otra (los abductores, de la E a la C).
+  // ella pero que luego se movieron a otra.
   const propios = ejerciciosPorSesion.get(realizada.sesionId) ?? [];
   const idsHechos = new Set(suyas.map((s) => s.ejercicioId));
   const movidos = [...ejerciciosPorSesion.values()]

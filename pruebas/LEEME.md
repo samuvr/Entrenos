@@ -29,13 +29,14 @@ en CMD antes de lanzarlas.
 
 | Suite | Qué cubre |
 |---|---|
-| `semilla.mjs` | La semilla del bloque 3 se carga entera y no se duplica |
-| `registro.mjs` | Toques por serie, precarga, cronómetro, saltos con motivo, persistencia |
-| `rotacion.mjs` | Ciclo A→B→C→D→E, progreso del bloque, avisos, salto manual de sesión |
-| `descarga.mjs` | Rotación 6 y funcionamiento sin conexión |
+| `semilla.mjs` | La semilla del bloque 4 se carga entera, no se duplica y cierra el bloque 3 sin tocar su historial |
+| `registro.mjs` | Toques por serie, precarga, descanso, superseries, cronómetro, saltos con motivo, día opcional, persistencia |
+| `rotacion.mjs` | Ciclo A→B→C→D (la E opcional no cuenta), progreso del bloque, técnica, avisos, salto manual de sesión |
+| `descarga.mjs` | Rotación 6 sin descarga y con ella activada, y funcionamiento sin conexión |
 | `exportar.mjs` | Copia JSON, CSV para Excel, restaurar, aviso de copia y cierre de bloque |
-| `progresion.mjs` | Doble progresión, SUBE HOY, objetivo cumplido y estancamiento |
+| `progresion.mjs` | Doble progresión, sesiones de técnica, SUBE HOY, objetivo cumplido y estancamiento |
 | `historial.mjs` | Historial por sesión y ejercicio, adherencia, gráficas y peso corporal |
+| `bloque4.mjs` | Paso del bloque 3 al 4, día opcional, técnica, descanso, superseries, consolidación, estancamiento y duraciones |
 | `pwa.mjs` | Manifest, iconos, service worker y arranque en modo avión |
 
 Cada suite deja el estado de la anterior por medio, así que se lanzan en su

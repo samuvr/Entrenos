@@ -172,7 +172,7 @@ function TarjetaEjercicioHistorial({ historial }: { historial: HistorialEjercici
               />
               {estancado && (
                 <p className="nota">
-                  Tres sesiones con el mismo peso sin llegar al tope del rango.
+                  Tres sesiones con el mismo peso sin aumentar las repeticiones totales.
                 </p>
               )}
               <ul className="ejercicios">

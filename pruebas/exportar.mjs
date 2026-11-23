@@ -19,22 +19,23 @@ import {
 const { navegador, pagina, errores } = await abrirNavegador();
 await pagina.goto(URL_BASE, { waitUntil: 'networkidle' });
 
-// Una rotación entera hecha y series de la primera sesión A.
-await sembrarHistorial(pagina, 5);
+// Una rotación entera hecha (A B C D), series de la primera A y la plancha
+// de la primera D.
+await sembrarHistorial(pagina, 4);
 await escribirFilas(pagina, 'seriesRealizadas', [
-  serie('bloque-3-A-1', 1, 37.5, 10),
-  serie('bloque-3-A-1', 2, 37.5, 10),
-  serie('bloque-3-A-1', 3, 35, 9),
+  serie('bloque-4-A-1', 1, 42.5, 10),
+  serie('bloque-4-A-1', 2, 42.5, 10),
+  serie('bloque-4-A-1', 3, 40, 9),
+  { ...serie('bloque-4-A-3', 1, 0, 0), completada: false, motivoOmision: 'maquina-ocupada' },
   // La plancha va en segundos, no en repeticiones.
-  serie('bloque-3-A-2', 1, 0, 45),
-  { ...serie('bloque-3-A-3', 1, 0, 0), completada: false, motivoOmision: 'maquina-ocupada' },
+  serie('bloque-4-D-6', 1, 0, 30, 'h-3'),
 ]);
 await pagina.reload({ waitUntil: 'networkidle' });
 
-function serie(ejercicioId, numeroSerie, peso, reps) {
+function serie(ejercicioId, numeroSerie, peso, reps, sesion = 'h-0') {
   return {
-    id: `h-0__${ejercicioId}__${numeroSerie}`,
-    sesionRealizadaId: 'h-0',
+    id: `${sesion}__${ejercicioId}__${numeroSerie}`,
+    sesionRealizadaId: sesion,
     ejercicioId,
     numeroSerie,
     peso,
@@ -70,7 +71,7 @@ const [descargaCSV] = await Promise.all([
 const csv = await readFile(await descargaCSV.path(), 'utf8');
 
 comprobar(
-  descargaCSV.suggestedFilename().startsWith('entrenos-bloque-3-'),
+  descargaCSV.suggestedFilename().startsWith('entrenos-bloque-4-'),
   `el CSV se llama ${descargaCSV.suggestedFilename()}`,
 );
 comprobar(csv.charCodeAt(0) === 0xfeff, 'el CSV lleva BOM (Excel respeta los acentos)');
@@ -83,16 +84,16 @@ comprobar(
 );
 comprobar(lineas.length === 6, `una fila por serie: ${lineas.length - 1} filas para 5 series`);
 comprobar(
-  lineas[1] === '2026-07-01;1;A;Press banca (barra);1;37,5;10;kg;si;',
+  lineas[1] === '2026-07-01;1;A;Press banca (barra);1;42,5;10;kg;si;',
   `la primera fila sale con decimales españoles: ${lineas[1]}`,
 );
 comprobar(
-  lineas[4].includes('Plancha') && lineas[4].includes(';45;segundos;'),
-  'la plancha se exporta en segundos, no como repeticiones',
+  lineas[4].endsWith(';no;Máquina ocupada'),
+  'la serie saltada sale marcada y con su motivo',
 );
 comprobar(
-  lineas[5].endsWith(';no;Máquina ocupada'),
-  'la serie saltada sale marcada y con su motivo',
+  lineas[5].startsWith('2026-07-04;1;D;CORE: Plancha RKC;') && lineas[5].includes(';30;segundos;'),
+  `la plancha se exporta en segundos, no como repeticiones: ${lineas[5]}`,
 );
 comprobar(
   lineas.every((l) => l.split(';').length === 10),
@@ -109,8 +110,8 @@ const rutaJSON = await descargaJSON.path();
 const copia = JSON.parse(await readFile(rutaJSON, 'utf8'));
 
 comprobar(copia.formato === 'entrenos' && copia.version === 1, 'la copia se identifica');
-comprobar(copia.datos.ejercicios.length === 26, 'la copia se lleva los 26 ejercicios del bloque');
-comprobar(copia.datos.sesionesRealizadas.length === 5, 'la copia se lleva las 5 sesiones hechas');
+comprobar(copia.datos.ejercicios.length === 30, 'la copia se lleva los 30 ejercicios del bloque');
+comprobar(copia.datos.sesionesRealizadas.length === 4, 'la copia se lleva las 4 sesiones hechas');
 comprobar(copia.datos.seriesRealizadas.length === 5, 'la copia se lleva las series');
 
 await pagina.getByRole('button', { name: 'Volver' }).click();
@@ -128,23 +129,27 @@ await pagina.reload({ waitUntil: 'networkidle' });
 comprobar((await contarFilas(pagina, 'sesionesRealizadas')) === 0, 'se borra el historial a mano');
 
 await pagina.getByRole('button', { name: 'Copia de seguridad y exportar' }).click();
-await pagina.setInputFiles('.entrada-fichero', rutaJSON);
+// Hay dos selectores de fichero: el de restaurar copia y, debajo, el de cargar
+// un plan de bloque.
+const entradaCopia = pagina.locator('.entrada-fichero').first();
+const entradaPlan = pagina.locator('.entrada-fichero').nth(1);
+await entradaCopia.setInputFiles(rutaJSON);
 await pagina.waitForSelector('.modal');
 comprobar(
-  (await pagina.locator('.modal').innerText()).includes('5 sesiones'),
+  (await pagina.locator('.modal').innerText()).includes('4 sesiones'),
   'antes de restaurar se enseña lo que trae el fichero',
 );
 
 await pagina.getByRole('button', { name: 'Restaurar y reemplazar' }).click();
 await pagina.waitForSelector('.banner-ok');
 comprobar(
-  (await contarFilas(pagina, 'sesionesRealizadas')) === 5,
-  'restaurar devuelve las 5 sesiones',
+  (await contarFilas(pagina, 'sesionesRealizadas')) === 4,
+  'restaurar devuelve las 4 sesiones',
 );
 comprobar((await contarFilas(pagina, 'seriesRealizadas')) === 5, 'restaurar devuelve las series');
 
 // Un fichero que no es una copia no puede tocar nada.
-await pagina.setInputFiles('.entrada-fichero', {
+await entradaCopia.setInputFiles({
   name: 'cualquiera.json',
   mimeType: 'application/json',
   buffer: Buffer.from('{"algo":1}'),
@@ -155,19 +160,33 @@ comprobar(
   'un fichero que no es copia se rechaza sin preguntar',
 );
 comprobar(
-  (await contarFilas(pagina, 'sesionesRealizadas')) === 5,
+  (await contarFilas(pagina, 'sesionesRealizadas')) === 4,
   'y deja el historial intacto',
+);
+
+// Una copia no es un plan: el selector de plan la rechaza sin tocar nada.
+await entradaPlan.setInputFiles(rutaJSON);
+await pagina.waitForFunction(() =>
+  document.querySelector('.banner-error')?.textContent?.includes('no es un plan'),
+);
+comprobar(
+  (await pagina.locator('.modal').count()) === 0,
+  'una copia metida como plan de bloque se rechaza sin preguntar',
+);
+comprobar(
+  (await contarFilas(pagina, 'bloques')) === 1 && (await contarFilas(pagina, 'ejercicios')) === 30,
+  'y la plantilla del bloque sigue igual',
 );
 
 // ---------- Fin de bloque (regla 6) ----------
 
 await pagina.getByRole('button', { name: 'Volver' }).click();
-await sembrarHistorial(pagina, 30);
+await sembrarHistorial(pagina, 24);
 await pagina.reload({ waitUntil: 'networkidle' });
 
 comprobar(
   (await pagina.locator('.tarjeta.destacada h2').innerText()).includes('Bloque completo'),
-  'al llegar a 30 sesiones se ofrece cerrar el bloque',
+  'al llegar a 24 sesiones se ofrece cerrar el bloque',
 );
 
 await pagina.getByRole('button', { name: 'Cerrar bloque' }).click();
@@ -188,6 +207,10 @@ comprobar(bloques[0].activo === false && bloques[0].fechaFin !== null, 'y con fe
 comprobar(
   (await pagina.getByRole('button', { name: /^Empezar sesión/ }).count()) === 0,
   'con el bloque cerrado ya no se empieza otra sesión',
+);
+comprobar(
+  (await pagina.getByRole('button', { name: /^Día opcional/ }).count()) === 0,
+  'ni tampoco el día opcional',
 );
 
 await pagina.getByRole('button', { name: 'Reabrir bloque' }).click();

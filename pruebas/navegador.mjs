@@ -70,10 +70,13 @@ export async function cerrar(navegador, errores) {
   console.log('\ntodo correcto');
 }
 
-/** Escribe N sesiones ya terminadas siguiendo el ciclo A→B→C→D→E. */
+/**
+ * Escribe N sesiones ya terminadas siguiendo el ciclo A→B→C→D del bloque 4.
+ * La E es opcional y no entra en el ciclo, así que aquí no sale nunca.
+ */
 export function sembrarHistorial(pagina, cantidad) {
   return pagina.evaluate(async (n) => {
-    const letras = ['A', 'B', 'C', 'D', 'E'];
+    const letras = ['A', 'B', 'C', 'D'];
     const bd = await new Promise((r) => {
       const q = indexedDB.open('entrenos');
       q.onsuccess = () => r(q.result);
@@ -86,9 +89,9 @@ export function sembrarHistorial(pagina, cantidad) {
       const mes = Math.floor(i / 27) + 7;
       almacen.put({
         id: `h-${i}`,
-        bloqueId: 'bloque-3',
-        sesionId: `bloque-3-${letras[i % 5]}`,
-        rotacion: Math.floor(i / 5) + 1,
+        bloqueId: 'bloque-4',
+        sesionId: `bloque-4-${letras[i % 4]}`,
+        rotacion: Math.floor(i / 4) + 1,
         fecha: `2026-0${mes}-${dia}`,
         iniciadaEn: `2026-0${mes}-${dia}T06:30:00.000Z`,
         finalizadaEn: `2026-0${mes}-${dia}T07:30:00.000Z`,
@@ -161,8 +164,29 @@ export function vaciarTabla(pagina, tabla) {
   }, tabla);
 }
 
-/** Activa o quita la descarga final del bloque 3 (la semilla la trae quitada). */
+/** Activa o quita la descarga final del bloque 4 (la semilla la trae quitada). */
 export async function ponerDescarga(pagina, conDescarga) {
-  const [bloque] = await leerTabla(pagina, 'bloques');
+  const bloque = (await leerTabla(pagina, 'bloques')).find((b) => b.activo);
   await escribirFilas(pagina, 'bloques', [{ ...bloque, conDescarga }]);
+}
+
+/**
+ * Cambia cuántas veces de técnica tiene cada sesión al empezar el bloque (la
+ * semilla trae 2). Con 0 se sube peso desde la primera vez.
+ */
+export async function ponerTecnica(pagina, sesionesTecnicaInicio) {
+  const bloque = (await leerTabla(pagina, 'bloques')).find((b) => b.activo);
+  await escribirFilas(pagina, 'bloques', [{ ...bloque, sesionesTecnicaInicio }]);
+}
+
+/**
+ * Quita el temporizador de descanso si está a la vista: va fijo abajo y puede
+ * tapar botones. Su estado vive en localStorage, por eso no basta con recargar.
+ */
+export async function saltarDescanso(pagina) {
+  const boton = pagina.locator('.descanso .boton-descanso.saltar');
+  if ((await boton.count()) > 0) {
+    await boton.click();
+    await pagina.waitForTimeout(60);
+  }
 }
