@@ -167,7 +167,31 @@ comprobar(
   'la plantilla del bloque 3 se conserva para su historial',
 );
 const ajustes = await leerTabla(pagina, 'ajustes');
-comprobar(ajustes.find((a) => a.clave === 'seedVersion')?.valor === 4, 'seedVersion pasa a 4');
+comprobar(ajustes.find((a) => a.clave === 'seedVersion')?.valor === 5, 'seedVersion pasa a 5');
+
+// Un móvil que ya estaba en el bloque 4 (seedVersion 4) recoge la plantilla
+// nueva de Torso 1 sin perder la fecha de inicio ni el historial.
+await escribirFilas(pagina, 'bloques', [{ ...b4, fechaInicio: '2026-11-20' }]);
+await escribirFilas(pagina, 'ejercicios', [
+  { ...(await leerTabla(pagina, 'ejercicios')).find((e) => e.id === 'bloque-4-A-6'), nombre: 'Pájaros / Reverse Pec Deck' },
+]);
+await escribirFilas(pagina, 'ajustes', [{ clave: 'seedVersion', valor: 4 }]);
+await pagina.reload({ waitUntil: 'networkidle' });
+await pagina.waitForSelector('.hoy-titular');
+const ejerciciosA = await leerTabla(pagina, 'ejercicios');
+comprobar(
+  ejerciciosA.find((e) => e.id === 'bloque-4-A-6')?.nombre === 'Curl en banco Scott con barra Z' &&
+    ejerciciosA.find((e) => e.id === 'bloque-4-A-5')?.series === 3,
+  'desde seedVersion 4 se recarga la plantilla de Torso 1',
+);
+comprobar(
+  (await leerTabla(pagina, 'bloques')).find((b) => b.id === 'bloque-4')?.fechaInicio === '2026-11-20',
+  'al recargar se respeta la fecha de inicio del bloque 4',
+);
+comprobar((await leerTabla(pagina, 'seriesRealizadas')).length === 2, 'y el historial sigue ahí');
+await escribirFilas(pagina, 'bloques', [b4]);
+await pagina.reload({ waitUntil: 'networkidle' });
+await pagina.waitForSelector('.hoy-titular');
 
 // ---------- 2. Inicio: técnica y día opcional ----------
 
