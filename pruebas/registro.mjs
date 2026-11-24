@@ -131,14 +131,14 @@ await tocar(
 );
 await pagina.waitForTimeout(150);
 comprobar(
-  (await pagina.locator('.ejercicio.abierto .nota-superserie').innerText()).includes('Pájaros'),
-  'las elevaciones avisan de que van en superserie con los pájaros',
+  (await pagina.locator('.ejercicio.abierto .nota-superserie').innerText()).includes('Curl en banco Scott'),
+  'las elevaciones avisan de que van en superserie con el curl Scott',
 );
 await tocar(pagina.locator('.serie.activa .boton-confirmar'));
 await pagina.waitForTimeout(150);
-comprobar((await abierto()).includes('Pájaros'), 'en superserie, tras A1 se abre A2');
+comprobar((await abierto()).includes('Curl en banco Scott'), 'en superserie, tras A1 se abre A2');
 comprobar(
-  (await descanso.innerText()).includes('Siguiente: Pájaros / Reverse Pec Deck · serie 1'),
+  (await descanso.innerText()).includes('Siguiente: Curl en banco Scott con barra Z · serie 1'),
   'el descanso anuncia el otro ejercicio de la superserie',
 );
 await saltarDescanso(pagina);

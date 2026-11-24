@@ -9,9 +9,9 @@ import planBloque4 from './planes/bloque-4-plan.json';
  * historial se queda como estaba. También se puede cargar un plan a mano desde
  * la pantalla de copia de seguridad.
  *
- * Versiones: 3 = bloque 3, 4 = bloque 4.
+ * Versiones: 3 = bloque 3, 4 = bloque 4, 5 = bloque 4 con Torso 1 reajustado.
  */
-export const SEED_VERSION = 4;
+export const SEED_VERSION = 5;
 export const BLOQUE_ID = 'bloque-4';
 
 export function planSembrado(): PlanEntrenos {
