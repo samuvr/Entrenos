@@ -207,7 +207,7 @@ await pagina.getByRole('button', { name: 'Empezar sesión A' }).click();
 await pagina.waitForSelector('.serie.activa');
 comprobar((await pagina.locator('.banner-tecnica').count()) === 1, 'la sesión muestra el aviso de técnica');
 comprobar(
-  (await pagina.locator('.banner-aviso').innerText()).includes('6:45'),
+  (await pagina.locator('.banner-aviso').innerText()).includes('pájaros + tríceps'),
   'la sesión avisa de qué saltar si se va justo de tiempo',
 );
 comprobar((await pagina.locator('.banner-sube').count()) === 0, 'en técnica no se propone subir');
@@ -256,13 +256,13 @@ comprobar(
 
 await abrirEjercicio('Elevaciones laterales');
 comprobar(
-  (await pagina.locator('.ejercicio.abierto .nota-superserie').innerText()).includes('Pájaros'),
+  (await pagina.locator('.ejercicio.abierto .nota-superserie').innerText()).includes('Curl en banco Scott'),
   'la tarjeta dice con qué se alterna',
 );
 await confirmarSerie();
-comprobar((await nombreAbierto()).includes('Pájaros'), 'tras A1 se abre A2');
+comprobar((await nombreAbierto()).includes('Curl en banco Scott'), 'tras A1 se abre A2');
 comprobar(
-  (await pagina.locator('.descanso-siguiente').innerText()).includes('Pájaros / Reverse Pec Deck · serie 1'),
+  (await pagina.locator('.descanso-siguiente').innerText()).includes('Curl en banco Scott con barra Z · serie 1'),
   'el descanso anuncia A2',
 );
 const descansoA1 = await segundosDescanso();
@@ -274,7 +274,7 @@ await saltarDescanso();
 
 // ---------- 5. Saltar una superserie por tiempo ----------
 
-await abrirEjercicio('Curl en banco Scott');
+await abrirEjercicio('Pájaros');
 await pagina.getByRole('button', { name: 'Saltar la superserie (falta de tiempo)' }).click();
 await esperar(300);
 const series = await leerTabla(pagina, 'seriesRealizadas');
